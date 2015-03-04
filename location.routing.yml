@@ -1,0 +1,67 @@
+location.autocomplete:
+  path: '/location/autocomplete'
+  defaults:
+    _controller: '\Drupal\location\Controller\LocationController::autocompletePage'
+  requirements:
+    _permission: 'access content'
+
+location.autocomplete.country:
+  path: '/location/autocomplete/{country}'
+  defaults:
+    _controller: '\Drupal\location\Controller\LocationController::autocompletePage'
+  requirements:
+    _permission: 'access content'
+
+location.autocomplete.country.string:
+  path: '/location/autocomplete/{country}/{string}'
+  defaults:
+    _controller: '\Drupal\location\Controller\LocationController::autocompletePage'
+  requirements:
+    _permission: 'access content'
+
+location.admin.config.content.location_form:
+  path: '/admin/config/content/location'
+  defaults:
+    _form: '\Drupal\location\Form\AdminConfigContentLocationForm'
+    _title: 'Location'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'administer site configuration'
+
+location.admin.config.content.location.main_form:
+  path: '/admin/config/content/location/main'
+  defaults:
+    _form: '\Drupal\location\Form\AdminConfigContentLocationForm'
+    _title: 'Main settings'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'administer site configuration'
+
+location.admin.config.content.location.maplinking_form:
+  path: '/admin/config/content/location/maplinking'
+  defaults:
+    _form: '\Drupal\location\Form\AdminConfigContentLocationMapLinkingForm'
+    _title: 'Map links'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'administer site configuration'
+
+location.admin.config.content.location.geocoding_form:
+  path: '/admin/config/content/location/geocoding'
+  defaults:
+    _form: '\Drupal\location\Form\AdminConfigContentLocationGeocodingForm'
+    _title: 'Geocoding options'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'administer site configuration'
+
+location.admin.config.content.location.geocoding.countryiso.service:
+  path: 'admin/config/content/location/geocoding/{country_iso}/{service}'
+  defaults:
+    _controller: '\Drupal\location\Controller\LocationController::geocodingParametersPage'
+  requirements:
+    _permission: 'administer site configuration'

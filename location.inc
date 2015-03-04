@@ -550,7 +550,7 @@ function _location_supported_countries() {
   }
 
   // Try first to load from cache, it's much faster than the scan below.
-  if ($cache = cache_get('location:supported-countries', 'cache_location')) {
+  if ($cache = \Drupal::cache('location')->get('location:supported-countries')) {
     $supported_countries = $cache->data;
   }
   else {
@@ -562,7 +562,7 @@ function _location_supported_countries() {
         $supported_countries[$cc] = $name;
       }
     }
-    cache_set('location:supported-countries', $supported_countries, 'cache_location');
+    \Drupal::cache('location')->set('location:supported-countries', $supported_countries);
   }
 
   return $supported_countries;
@@ -579,7 +579,7 @@ function location_get_provinces($country = 'us') {
 
   location_standardize_country_code($country);
   if (!isset($provinces[$country])) {
-    if ($cache = cache_get("provinces:$country:$lang_code", 'cache_location')) {
+    if ($cache = cache_get("provinces:$country:$lang_code", 'location')) {
       $provinces[$country] = $cache->data;
     }
     else {
@@ -587,7 +587,7 @@ function location_get_provinces($country = 'us') {
       $func = 'location_province_list_' . $country;
       if (function_exists($func)) {
         $provinces[$country] = $func();
-        cache_set("provinces:$country:$lang_code", $provinces[$country], 'cache_location');
+        cache_set("provinces:$country:$lang_code", $provinces[$country], 'location');
       }
     }
   }
@@ -802,16 +802,18 @@ function location_get_iso3166_list($upper = FALSE) {
   // Statically cache a version of the core Drupal list of countries
   // with lower case country codes for use by this module.
   $countries = & drupal_static(__FUNCTION__);
+  
+  $country_list = Drupal::service('country_manager')->getList();
 
   if ($upper) {
     // Drupal core stores ISO 3166-1 alpha2 codes in upper case, as
     // per the ISO standard.
-    return country_get_list();
+    return $country_list;
   }
   elseif (!isset($countries)) {
     // Location module uses lower-case ISO 3166-1 alpha2 codes, so we need
     // to convert.
-    $countries = array_change_key_case(country_get_list(), CASE_LOWER);
+    $countries = array_change_key_case($country_list, CASE_LOWER);
   }
 
   return $countries;

@@ -1,0 +1,13 @@
+location_default_country: 'us'
+location_display_location: 1
+location_use_province_abbreviation: 1
+location_usegmap: FALSE
+location_locpick_macro: '[gmap]'
+location_jit_geocoding: FALSE
+location_maplink_external: 0
+location_maplink_external_method: 'target="_blank"'
+
+location_geocode_google_minimum_accuracy: 3
+
+location_geocode_google_apikey: ''
+location_geocode_google_delay: 0

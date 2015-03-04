@@ -27,48 +27,6 @@ include_once DRUPAL_ROOT . '/' . LOCATION_PATH . '/location.inc';
 function location_menu() {
   $items = array();
 
-  $items['location/autocomplete'] = array(
-    'access arguments' => array('access content'),
-    'page callback' => '_location_autocomplete',
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/config/content/location'] = array(
-    'title' => 'Location',
-    'description' => 'Settings for Location module',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('location_admin_settings'),
-    'file' => 'location.admin.inc',
-    'access arguments' => array('administer site configuration'),
-  );
-  $items['admin/config/content/location/main'] = array(
-    'title' => 'Main settings',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['admin/config/content/location/maplinking'] = array(
-    'title' => 'Map links',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('location_map_link_options_form'),
-    'access arguments' => array('administer site configuration'),
-    'file' => 'location.admin.inc',
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 1,
-  );
-  $items['admin/config/content/location/geocoding'] = array(
-    'title' => 'Geocoding options',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('location_geocoding_options_form'),
-    'access arguments' => array('administer site configuration'),
-    'file' => 'location.admin.inc',
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 2,
-  );
-  $items['admin/config/content/location/geocoding/%/%'] = array(
-    'page callback' => 'location_geocoding_parameters_page',
-    'page arguments' => array(5, 6),
-    'access arguments' => array('administer site configuration'),
-    'type' => MENU_CALLBACK,
-  );
   $items['admin/config/content/location/util'] = array(
     'title' => 'Location utilities',
     'page callback' => 'drupal_get_form',
@@ -192,7 +150,7 @@ function location_field_extra_fields() {
  * Implements hook_flush_caches().
  */
 function location_flush_caches() {
-  return array('cache_location');
+  return array('location');
 }
 
 /**
@@ -999,50 +957,11 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
   }
 }
 
-/**
- * Page callback.
- */
-function location_geocoding_parameters_page($country_iso, $service) {
-  drupal_set_title(t('Configure parameters for %service geocoding', array('%service' => $service)), PASS_THROUGH);
 
-  $breadcrumbs = drupal_get_breadcrumb();
-  $breadcrumbs[] = l(t('Location'), 'admin/config/content/location');
-  $breadcrumbs[] = l(t('Geocoding'), 'admin/config/content/location/geocoding');
-  $countries = location_get_iso3166_list();
-  $breadcrumbs[] = l(
-    $countries[$country_iso],
-    'admin/config/content/location/geocoding',
-    array('fragment' => $country_iso)
-  );
-  drupal_set_breadcrumb($breadcrumbs);
 
-  return drupal_get_form('location_geocoding_parameters_form', $country_iso, $service);
-}
 
-/**
- * Parameters form.
- */
 function location_geocoding_parameters_form($form, &$form_state, $country_iso, $service) {
-  location_load_country($country_iso);
-  $geocode_settings_form_function_specific = 'location_geocode_' . $country_iso . '_' . $service . '_settings';
-  $geocode_settings_form_function_general = $service . '_geocode_settings';
-  if (function_exists($geocode_settings_form_function_specific)) {
-    return system_settings_form($geocode_settings_form_function_specific());
-  }
-  location_load_geocoder($service);
-  if (function_exists($geocode_settings_form_function_general)) {
-    return system_settings_form($geocode_settings_form_function_general());
-  }
-  else {
-    return system_settings_form(
-      array(
-        '#type' => 'markup',
-        '#markup' => t(
-          'No configuration parameters are necessary, or a form to take such paramters has not been implemented.'
-        ),
-      )
-    );
-  }
+  
 }
 
 /**
@@ -1210,48 +1129,7 @@ function location_load_location($lid) {
   return $location;
 }
 
-/**
- * Create a list of states from a given country.
- *
- * @param string $country
- *   The country code
- *
- * @param string $string
- *   The state name typed by user
- *
- * @return array
- *   Javascript array. List of states
- */
-function _location_autocomplete($country, $string = '') {
-  $counter = 0;
-  $string = strtolower($string);
-  $string = '/^' . preg_quote($string) . '/';
-  $matches = array();
 
-  if (strpos($country, ',') !== FALSE) {
-    // Multiple countries specified.
-    $provinces = array();
-    $country = explode(',', $country);
-    foreach ($country as $c) {
-      $provinces = $provinces + location_get_provinces($c);
-    }
-  }
-  else {
-    $provinces = location_get_provinces($country);
-  }
-
-  if (!empty($provinces)) {
-    while (list($code, $name) = each($provinces)) {
-      if ($counter < 5) {
-        if (preg_match($string, strtolower($name))) {
-          $matches[$name] = $name;
-          ++$counter;
-        }
-      }
-    }
-  }
-  drupal_json_output($matches);
-}
 
 /**
  * AJAX callback for the Country select form, for cases where the province list.

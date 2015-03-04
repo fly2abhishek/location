@@ -11,14 +11,16 @@
  * A cached version is stored in the Drupal cache in case Google is unreachable.
  */
 function google_geocode_country_list_xml() {
+  $client = Drupal::httpClient();
   // Get the google data from the feed.
-  $source = drupal_http_request(
+  $source = $client->createRequest(
+    'GET',
     'http://spreadsheets.google.com/feeds/list/p9pdwsai2hDMsLkXsoM05KQ/default/public/values'
   );
 
   if (!$source->data) {
     // Use the cache.
-    $data = cache_get('location_google');
+    $data = \Drupal::cache()->get('location_google');
     if (!defined('LIBXML_VERSION') || (version_compare(phpversion(), '5.1.0', '<'))) {
       $xml = simplexml_load_string($data->data, NULL);
     }
@@ -195,52 +197,13 @@ function google_geocode_location($location = array()) {
   return array('lat' => $location->lat, 'lon' => $location->lng);
 }
 
-/**
- * General settings for this geocoder.
- */
+
 function google_geocode_settings() {
+  
   $form = array();
 
-  $form['location_geocode_google_apikey'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Google Geocoding API Server Key'),
-    '#size' => 64,
-    '#maxlength' => 128,
-    '#default_value' => variable_get('location_geocode_google_apikey', ''),
-    '#description' => t(
-      'In order to use the Google Geocoding API web-service, you will need a Google Geocoding API Server Key.  You can obtain one at the !sign_up_link for the !google_maps_api.  Without a key daily requests from a single IP address will be automaticaly limited.  If you do not enter a key here this module will use the Google Maps API Key from gmap if one is present. NOTE: You will <em>not</em> have to re-enter your API key for each country for which you have selected Google Maps for geocoding.  This setting is global.',
-      array(
-        '!sign_up_link' => '<a href="http://console.developers.google.com/">sign-up page</a>',
-        '!google_maps_api' => '<a href="http://developers.google.com/maps/documentation/geocoding/">Google Geocoding API</a>',
-      )
-    ),
-  );
 
-  $form['location_geocode_google_delay'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Delay between geocoding requests (is milliseconds)'),
-    '#description' => t(
-      'To avoid a 620 error (denial of service) from Google, you can add a delay between geocoding requests. 200ms is recommended.'
-    ),
-    '#default_value' => variable_get('location_geocode_google_delay', 0),
-    '#size' => 10,
-  );
-
-  $country = arg(5);
-  if ($country) {
-    $form['location_geocode_' . $country . '_google_accuracy_code'] = array(
-      '#type' => 'select',
-      '#title' => t('Google Maps Geocoding Accuracy for %country', array('%country' => $country)),
-      '#default_value' => variable_get(
-        'location_geocode_' . $country . '_google_accuracy_code',
-        variable_get('location_geocode_google_minimum_accuracy', '3')
-      ),
-      '#options' => location_google_geocode_accuracy_codes(),
-      '#description' => t('The minimum required accuracy for the geolocation data to be saved.'),
-    );
-  }
-
-  return $form;
+  //return $form;
 }
 
 /**
