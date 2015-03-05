@@ -68,54 +68,15 @@ function theme_location_geocoding_options($variables) {
 }
 
 /**
- * Location Utilities form.
- */
-function location_util_form($form, &$form_state) {
-  $form['province_clear'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Clear province cache'),
-    '#description' => t(
-      'If you have modified location.xx.inc files, you will need to clear the province cache to get Location to recognize the modifications.'
-    ),
-  );
-
-  $form['supported_countries_clear'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Clear supported country list'),
-    '#description' => t(
-      'If you have added support for a new country, you will need to clear the supported country list to get Location to recognize the modifications.'
-    ),
-  );
-
-  $form['actions'] = array(
-    '#type' => 'actions',
-  );
-  $form['actions']['province_clear_submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Clear province cache'),
-    '#submit' => array('location_util_form_clear_province_cache_submit'),
-  );
-  $form['actions']['supported_countries_clear_submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Clear supported country list'),
-    '#submit' => array('location_util_form_clear_supported_countries_submit'),
-  );
-
-  return $form;
-}
-
-/**
  * Location utilities form: Clear province cache.
  */
 function location_util_form_clear_province_cache_submit() {
-  drupal_set_message(t('Location province cache cleared.'));
-  cache_clear_all('provinces:', 'location', TRUE);
+  
 }
 
 /**
  * Location utilities form: Clear supported countries cache.
  */
 function location_util_form_clear_supported_countries_submit() {
-  drupal_set_message(t('Location supported country list cleared.'));
-  cache_clear_all('location:supported-countries', 'location');
+  
 }

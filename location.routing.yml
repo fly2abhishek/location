@@ -60,8 +60,20 @@ location.admin.config.content.location.geocoding_form:
     _permission: 'administer site configuration'
 
 location.admin.config.content.location.geocoding.countryiso.service:
-  path: 'admin/config/content/location/geocoding/{country_iso}/{service}'
+  path: '/admin/config/content/location/geocoding/{country_iso}/{service}'
   defaults:
     _controller: '\Drupal\location\Controller\LocationController::geocodingParametersPage'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'administer site configuration'
+
+location.admin.config.content.location.util:
+  path: '/admin/config/content/location/util'
+  defaults:
+    _form: '\Drupal\location\Form\AdminConfigContentLocationUtilForm'
+    _title: 'Location utilities'
+  options:
+    _admin_route: TRUE
   requirements:
     _permission: 'administer site configuration'

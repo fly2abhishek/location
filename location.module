@@ -21,25 +21,10 @@ define('LOCATION_USER_COLLECT', 1);
 
 include_once DRUPAL_ROOT . '/' . LOCATION_PATH . '/location.inc';
 
-/**
- * Implements hook_menu().
- */
-function location_menu() {
-  $items = array();
+use Drupal\Core\Url;
+use Drupal\node\Entity\NodeType;
 
-  $items['admin/config/content/location/util'] = array(
-    'title' => 'Location utilities',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('location_util_form'),
-    'access arguments' => array('administer site configuration'),
-    'file' => 'location.admin.inc',
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 3,
-  );
-
-  return $items;
-}
-
+// TODO: Determine if anything needs to happen with this.
 /**
  * Location API.
  */
@@ -48,33 +33,13 @@ function location_api_variant() {
 }
 
 /**
- * Implements hook_permission().
- */
-function location_permission() {
-  return array(
-    'view location directory' => array(
-      'title' => t('View location directory'),
-    ),
-    'view node location table' => array(
-      'title' => t('View node location table'),
-    ),
-    'view user location table' => array(
-      'title' => t('View user location table'),
-    ),
-    'submit latitude/longitude' => array(
-      'title' => t('Submit latitude/longitude'),
-    ),
-  );
-}
-
-/**
  * Implements hook_help().
  *
  * @TODO: check/fix this: admin/content/configure/types (still use %? still same url?)
  */
-function location_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#location':
+function location_help($route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.location':
       $output = '<p>' . t(
           'The location module allows you to associate a geographic location with content and users. Users can do proximity searches by postal code.  This is useful for organizing communities that have a geographic presence.'
         ) . '</p>';
@@ -89,9 +54,9 @@ function location_help($path, $arg) {
           <li>use a database dump for a U.S. and/or German postal codes table that can be found at <a href="@external-http-cvs-drupal-org">zipcode database</a>.</li>
           ',
           array(
-            '@admin-node-configure-types' => url('admin/content/types'),
-            '@admin-settings-location' => url('admin/config/content/location'),
-            '@external-http-cvs-drupal-org' => 'http://cvs.drupal.org/viewcvs/drupal/contributions/modules/location/database/'
+            '@admin-node-configure-types' => Url::fromRoute('entity.node_type.collection')->toString(),
+            '@admin-settings-location' => Url::fromRoute('location.admin.config.content.location_form')->toString(),
+            '@external-http-cvs-drupal-org' => Url::fromUri('http://cvs.drupal.org/viewcvs/drupal/contributions/modules/location/database/'),
           )
         ) . '</ul>';
       $output .= '<p>' . t(
@@ -103,6 +68,7 @@ function location_help($path, $arg) {
   }
 }
 
+// TODO: Port to D8.
 /**
  * Implements hook_element_info().
  */
@@ -129,13 +95,13 @@ function location_element_info() {
 }
 
 /**
- * Implements hook_field_extra_fields().
+ * Implements hook_entity_extra_field_info().
  */
-function location_field_extra_fields() {
+function location_entity_extra_field_info() {
   $info = array();
-  foreach (node_type_get_types() as $node_type) {
-    if (!isset($info['node'][$node_type->type]['form']['locations'])) {
-      $info['node'][$node_type->type]['form']['locations'] = array(
+  foreach (NodeType::loadMultiple() as $node_type) {
+    if (!isset($info['node'][$node_type->get('type')]['form']['locations'])) {
+      $info['node'][$node_type->get('type')]['form']['locations'] = array(
         'label' => t('Location'),
         'description' => t('Location module form elements'),
         'weight' => 30,
@@ -147,12 +113,13 @@ function location_field_extra_fields() {
 }
 
 /**
- * Implements hook_flush_caches().
+ * Implements hook_cache_flush().
  */
-function location_flush_caches() {
-  return array('location');
+function location_cache_flush() {
+  \Drupal::keyValueExpirable('location')->deleteAll();
 }
 
+// TODO: Port to D8.
 /**
  * Theme function to fixup location elements.
  * @ingroup themable
@@ -215,15 +182,7 @@ function location_theme() {
   );
 }
 
-/**
- * Implements hook_views_api().
- */
-function location_views_api() {
-  return array(
-    'api' => 3,
-  );
-}
-
+// TODO: Port to D8.
 /**
  * Implements hook_ctools_plugin_directory().
  */
@@ -957,13 +916,7 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
   }
 }
 
-
-
-
-function location_geocoding_parameters_form($form, &$form_state, $country_iso, $service) {
-  
-}
-
+// TODO: Port to D8.
 /**
  * Load associated locations.
  *
