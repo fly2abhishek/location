@@ -54,7 +54,7 @@ class LocationController extends ControllerBase {
       while (list($code, $name) = each($provinces)) {
         if ($counter < 5) {
           if (preg_match($string, strtolower($name))) {
-            $matches[$name] = $name;
+            $matches[] = $name;
             ++$counter;
           }
         }

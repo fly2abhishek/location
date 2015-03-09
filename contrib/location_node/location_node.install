@@ -6,10 +6,11 @@
  */
 
 /**
- * Implentation of hook_uninstall().
+ * Implentats hook_uninstall().
  */
 function location_node_uninstall() {
-  // Delete node settings.
+  // TODO: Port to D8.
+  /*// Delete node settings.
   $result = db_query("SELECT name FROM {variable} WHERE name LIKE 'location_settings_node_%'")->fetchCol();
   foreach ($result as $var) {
     variable_del($var);
@@ -23,5 +24,5 @@ function location_node_uninstall() {
   $result = db_query("SELECT name FROM {variable} WHERE name LIKE 'location_defaultnum_%'")->fetchCol();
   foreach ($result as $var) {
     variable_del($var);
-  }
+  }*/
 }

@@ -84,13 +84,13 @@ function location_element_info() {
       // Element level validation.
       '#element_validate' => array('location_element_validate'),
     ),
-    'location_settings' => array(
+    /*'location_settings' => array(
       '#input' => TRUE,
       '#process' => array('_location_process_location_settings'),
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
       '#tree' => TRUE,
-    ),
+    ),*/
   );
 }
 
@@ -142,14 +142,12 @@ function location_theme() {
       'render element' => 'element',
     ),
     'locations' => array(
-      'template' => 'locations',
       'variables' => array(
         'locations' => NULL,
         'hide' => array(),
       ),
     ),
     'location' => array(
-      'template' => 'location',
       'variables' => array(
         'location' => NULL,
         'hide' => array(),
@@ -192,334 +190,24 @@ function location_ctools_plugin_directory($module, $plugin) {
   }
 }
 
-/**
- * Process a location element.
- */
+// TODO. Port to D8. See location_element_info().
+
 function _location_process_location($element, $form_state) {
-  // This is TRUE if we are processing a form that already contains values, such as during an AJAX call.
-  drupal_add_css(drupal_get_path('module', 'location') . '/location.css');
-  $element['#tree'] = TRUE;
-
-  if (!isset($element['#title'])) {
-    $element['#title'] = t('Location', array(), array('context' => 'geolocation'));
-  }
-  if (empty($element['#location_settings'])) {
-    $element['#location_settings'] = array();
-  }
-  if (!isset($element['#default_value']) || $element['#default_value'] == 0) {
-    $element['#default_value'] = array();
-  }
-
-  $element['location_settings'] = array(
-    '#type' => 'value',
-    '#value' => $element['#location_settings'],
-  );
-
-  // Ensure this isn't accidentally used later.
-  unset($element['#location_settings']);
-
-  // Make a reference to the settings.
-  $settings =& $element['location_settings']['#value'];
-
-  if (isset($element['#default_value']['lid']) && $element['#default_value']['lid']) {
-    // Keep track of the old LID.
-    $element['lid'] = array(
-      '#type' => 'value',
-      '#value' => $element['#default_value']['lid'],
-    );
-  }
-
-  // Fill in missing defaults, etc.
-  location_normalize_settings($settings, $element['#required']);
-
-  $defaults = location_empty_location($settings);
-
-  if (isset($element['lid']['#value']) && $element['lid']['#value']) {
-    $defaults = location_load_location($element['lid']['#value']);
-  }
-
-  $fsettings =& $settings['form']['fields'];
-
-  // $settings -> $settings['form']['fields']
-
-  // $defaults is not necessarily what we want.
-  // If #default_value was already specified, we want to use that, because
-  // otherwise we will lose our values on preview!
-  $fdefaults = $defaults;
-  foreach ($element['#default_value'] as $k => $v) {
-    $fdefaults[$k] = $v;
-  }
-
-  $fields = location_field_names();
-  foreach ($fields as $field => $title) {
-    if (!isset($element[$field])) {
-      // @@@ Permission check hook?
-      if ($fsettings[$field]['collect'] != 0) {
-        $fsettings[$field]['#parents'] = $element['#parents'];
-        $element[$field] = location_invoke_locationapi(
-          $fdefaults[$field],
-          'field_expand',
-          $field,
-          $fsettings[$field],
-          $fdefaults
-        );
-        $element[$field]['#weight'] = (int) $fsettings[$field]['weight'];
-      }
-    }
-
-    // If State/Province is using the select widget, update the element's options.
-    if ($field == 'province' && $fsettings[$field]['widget'] == 'select') {
-      // We are building the element for the first time.
-      if (!isset($element['value']['country'])) {
-        $country = $fdefaults['country'];
-      }
-      else {
-        $country = $element['#value']['country'];
-      }
-      $provinces = location_get_provinces($country);
-      // The submit handler expects to find the full province name, not the
-      // abbreviation. The select options should reflect this expectation.
-      $element[$field]['#options'] = array('' => t('Select'), 'xx' => t('NOT LISTED')) + $provinces;
-      $element[$field]['#validated'] = TRUE;
-    }
-  }
-
-  // Only include 'Street Additional' if 'Street' is 'allowed' or 'required'
-  if (!isset($element['street'])) {
-    unset($element['additional']);
-  }
-
-  // @@@ Split into submit and view permissions?
-  if (user_access('submit latitude/longitude') && $fsettings['locpick']['collect']) {
-    $element['locpick'] = array('#weight' => $fsettings['locpick']['weight']);
-
-    if (location_has_coordinates($defaults, FALSE)) {
-      $element['locpick']['current'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Current coordinates'),
-        '#attributes' => array('class' => array('location-current-coordinates-fieldset')),
-      );
-      $element['locpick']['current']['current_latitude'] = array(
-        '#type' => 'item',
-        '#title' => t('Latitude'),
-        '#markup' => $defaults['latitude'],
-      );
-      $element['locpick']['current']['current_longitude'] = array(
-        '#type' => 'item',
-        '#title' => t('Longitude'),
-        '#markup' => $defaults['longitude'],
-      );
-      $source = t('Unknown');
-      switch ($defaults['source']) {
-        case LOCATION_LATLON_USER_SUBMITTED:
-          $source = t('User-submitted');
-          break;
-
-        case LOCATION_LATLON_GEOCODED_APPROX:
-          $source = t('Geocoded (Postal code level)');
-          break;
-
-        case LOCATION_LATLON_GEOCODED_EXACT:
-          $source = t('Geocoded (Exact)');
-      }
-      $element['locpick']['current']['current_source'] = array(
-        '#type' => 'item',
-        '#title' => t('Source'),
-        '#markup' => $source,
-      );
-    }
-
-    $element['locpick']['user_latitude'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Latitude'),
-      '#default_value' => isset($element['#default_value']['locpick']['user_latitude']) ? $element['#default_value']['locpick']['user_latitude'] : '',
-      '#size' => 16,
-      '#attributes' => array('class' => array('container-inline')),
-      '#maxlength' => 20,
-      '#required' => $fsettings['locpick']['collect'] == 2,
-    );
-    $element['locpick']['user_longitude'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Longitude'),
-      '#default_value' => isset($element['#default_value']['locpick']['user_longitude']) ? $element['#default_value']['locpick']['user_longitude'] : '',
-      '#size' => 16,
-      '#maxlength' => 20,
-      '#required' => $fsettings['locpick']['collect'] == 2,
-    );
-
-    $element['locpick']['instructions'] = array(
-      '#type' => 'markup',
-      '#weight' => 1,
-      '#prefix' => '<div class=\'description\'>',
-      '#markup' => '<br /><br />' . t(
-        'If you wish to supply your own latitude and longitude, you may enter them above.  If you leave these fields blank, the system will attempt to determine a latitude and longitude for you from the entered address.  To have the system recalculate your location from the address, for example if you change the address, delete the values for these fields.'
-      ),
-      '#suffix' => '</div>',
-    );
-    if (function_exists('gmap_get_auto_mapid') && variable_get('location_usegmap', FALSE)) {
-      $mapid = gmap_get_auto_mapid();
-      $map = array_merge(gmap_defaults(), gmap_parse_macro(variable_get('location_locpick_macro', '[gmap]')));
-      $map['id'] = $mapid;
-      $map['points'] = array();
-      $map['pointsOverlays'] = array();
-      $map['lines'] = array();
-
-      $map['behavior']['locpick'] = TRUE;
-      $map['behavior']['collapsehack'] = TRUE;
-      // Use previous coordinates to center the map.
-      if (location_has_coordinates($defaults, FALSE)) {
-        $map['latitude'] = (float) $defaults['latitude'];
-        $map['longitude'] = (float) $defaults['longitude'];
-
-        $map['markers'][] = array(
-          'latitude' => $defaults['latitude'],
-          'longitude' => $defaults['longitude'],
-          'markername' => 'small gray',
-          'offset' => 0,
-          'opts' => array(
-            'clickable' => FALSE,
-          ),
-        );
-      }
-      $element['locpick']['user_latitude']['#map'] = $mapid;
-      gmap_widget_setup($element['locpick']['user_latitude'], 'locpick_latitude');
-      $element['locpick']['user_longitude']['#map'] = $mapid;
-      gmap_widget_setup($element['locpick']['user_longitude'], 'locpick_longitude');
-
-      $element['locpick']['map'] = array(
-        '#type' => 'gmap',
-        '#weight' => -1,
-        '#gmap_settings' => $map,
-      );
-      $element['locpick']['map_instructions'] = array(
-        '#type' => 'markup',
-        '#weight' => 2,
-        '#prefix' => '<div class=\'description\'>',
-        '#markup' => t(
-          'You may set the location by clicking on the map, or dragging the location marker.  To clear the location and cause it to be recalculated, click on the marker.'
-        ),
-        '#suffix' => '</div>',
-      );
-    }
-  }
-
-  if (isset($defaults['lid']) && !empty($defaults['lid'])) {
-    $element['re_geocode_location'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Re geocode'),
-      '#default_value' => isset($fdefaults['re_geocode_location']) ? $fdefaults['re_geocode_location'] : FALSE,
-      '#description' => t('Check this box to re-geocode location.'),
-    );
-    $element['delete_location'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Delete'),
-      '#default_value' => isset($fdefaults['delete_location']) ? $fdefaults['delete_location'] : FALSE,
-      '#description' => t('Check this box to delete this location.'),
-    );
-  }
-
-  $fieldset_info = element_info('fieldset');
-  $element += $fieldset_info;
-  $element['#process'] = array_merge($element['#process'], $fieldset_info['#process']);
-  if (isset($fieldset_info['#process'])) {
-    foreach ($fieldset_info['#process'] as $process) {
-      $element = $process($element, $form_state, $form_state['complete form']);
-    }
-  }
-
-  drupal_alter('location_element', $element);
-
-  return $element;
+  
 }
 
+// TODO: Port to D8. See hook_element_info().
 /**
  * Process location settings.
  */
 function _location_process_location_settings(&$element) {
-  // Set a value for the fieldset that doesn't interfere with rendering and doesn't generate a warning.
-  $element['#tree'] = TRUE;
-  $element['#theme'] = 'location_settings';
-
-  if (!isset($element['#title'])) {
-    $element['#title'] = t('Location Fields');
-  }
-  if (!isset($element['#default_value']) || $element['#default_value'] == 0) {
-    $element['#default_value'] = array();
-  }
-
-  // Force #tree on.
-  $element['#tree'] = TRUE;
-
-  $defaults = $element['#default_value'];
-  if (!isset($defaults) || !is_array($defaults)) {
-    $defaults = array();
-  }
-  $temp = location_invoke_locationapi($element, 'defaults');
-  foreach ($temp as $k => $v) {
-    if (!isset($defaults[$k])) {
-      $defaults[$k] = array();
-    }
-    $defaults[$k] = array_merge($v, $defaults[$k]);
-  }
-
-  $fields = location_field_names();
-
-  // Options for fields.
-  $options = array(
-    0 => t('Do not collect'),
-    1 => t('Allow'),
-    2 => t('Require'),
-    // Need to consider the new "defaults" when saving.
-    4 => t('Force Default'),
-  );
-
-  foreach ($fields as $field => $title) {
-    $element[$field] = array(
-      '#type' => 'fieldset',
-      '#tree' => TRUE,
-    );
-    $element[$field]['name'] = array(
-      '#type' => 'item',
-      '#markup' => $title,
-    );
-    $element[$field]['collect'] = array(
-      '#type' => 'select',
-      '#default_value' => $defaults[$field]['collect'],
-      '#options' => $options,
-    );
-
-    $dummy = array();
-    $widgets = location_invoke_locationapi($dummy, 'widget', $field);
-    if (!empty($widgets)) {
-      $element[$field]['widget'] = array(
-        '#type' => 'select',
-        '#default_value' => $defaults[$field]['widget'],
-        '#options' => $widgets,
-      );
-    }
-
-    $temp = $defaults[$field]['default'];
-    $element[$field]['default'] = location_invoke_locationapi($temp, 'field_expand', $field, 1, $defaults);
-    $defaults[$field]['default'] = $temp;
-
-    $element[$field]['weight'] = array(
-      '#type' => 'weight',
-      '#delta' => 100,
-      '#default_value' => $defaults[$field]['weight'],
-    );
-  }
-
-  // 'Street Additional' field should depend on 'Street' setting.
-  // It should never be required and should only display when the street field is 'allowed' or 'required'.
-  // @todo Alter here.
-
-  return $element;
+  
 }
 
 /**
  * Theme callback for location settings.
  */
-function theme_location_settings($variables) {
+function template_preprocess_location_settings(&$variables) {
   $element = $variables['element'];
 
   $rows = array();
@@ -542,7 +230,7 @@ function theme_location_settings($variables) {
     $element[$key]['weight']['#attributes']['class'] = array('location-settings-weight');
     unset($element[$key]['default']['#title']);
     $row = array();
-    $row[] = array('data' => '', 'class' => array('location-settings-drag'));
+    $row[] = array('data' => '', 'class' => array('location-settings-drag', 'draggable'));
     $row[] = drupal_render($element[$key]['name']);
     $row[] = drupal_render($element[$key]['collect']);
     $row[] = !empty($element[$key]['widget']) ? drupal_render($element[$key]['widget']) : '';
@@ -561,20 +249,24 @@ function theme_location_settings($variables) {
     unset($rows[$k]['#weight']);
   }
 
-  drupal_add_tabledrag('location-settings-table', 'order', 'sibling', 'location-settings-weight');
-
-  $output = theme(
-    'table',
-    array(
-      'header' => $header,
-      'rows' => $rows,
-      'attributes' => array('id' => 'location-settings-table'),
-    )
+  $table = array(
+    '#type' => 'table',
+    '#header' => $header,
+    '#rows' => $rows,
+    '#attributes' => array('id' => 'location-settings-table'),
+    '#tabledrag' => array(
+      array(
+        'action' => 'order',
+        'relationship' => 'sibling',
+        'group' => 'location-settings-weight',
+      ),
+    ),
   );
-
-  return $output;
+  
+  $variables['table'] = render($table);
 }
 
+// TODO: Port to D8.
 /**
  * Field names.
  */
@@ -606,6 +298,9 @@ function location_field_names($all = FALSE) {
  * Implements hook_locationapi().
  */
 function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
+  // Get the config.
+  $config = \Drupal::config('location.variables');
+  
   switch ($op) {
     // @codingStandardsIgnoreStart
     case 'fields':
@@ -654,7 +349,7 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
         'city' => array('default' => '', 'collect' => 0, 'weight' => 8),
         'province' => array('default' => '', 'collect' => 0, 'weight' => 10, 'widget' => 'autocomplete'),
         'postal_code' => array('default' => '', 'collect' => 0, 'weight' => 12),
-        'country' => array('default' => variable_get('location_default_country', 'us'), 'collect' => 1, 'weight' => 14),
+        'country' => array('default' => $config->get('location_default_country'), 'collect' => 1, 'weight' => 14),
         'locpick' => array('default' => FALSE, 'collect' => 1, 'weight' => 20, 'nodiff' => TRUE),
         'latitude' => array('default' => 0),
         'longitude' => array('default' => 0),
@@ -771,14 +466,14 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
         // @codingStandardsIgnoreEnd
 
         case 'province':
-          if (isset($a5['country']) && is_string($a5['country'])) {
+          if (isset($a5['country']) && is_string($a5['country']) && !is_null($a5['country'])) {
             $country = $a5['country'];
           }
-          elseif (isset($a5['country']['default']) && is_string($a5['country']['default'])) {
+          elseif (isset($a5['country']['default']) && is_string($a5['country']['default']) && !is_null($a5['country']['default'])) {
             $country = $a5['country']['default'];
           }
           else {
-            $country = variable_get('site_default_country', 'us');
+            $country = \Drupal::config('system.site')->get('site_default_country');
           }
           switch ($settings['widget']) {
             // @codingStandardsIgnoreStart
@@ -808,19 +503,27 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
 
             case 'autocomplete':
             default:
-              drupal_add_js(drupal_get_path('module', 'location') . '/location_autocomplete.js');
-
-              return array(
+              $attrs = array(
                 '#type' => 'textfield',
                 '#title' => t('State/Province'),
-                '#autocomplete_path' => 'location/autocomplete/' . $country,
                 '#default_value' => $obj,
                 '#size' => 64,
                 '#maxlength' => 64,
                 '#description' => NULL,
                 '#attributes' => array('class' => array('location_auto_province')),
                 '#required' => ($settings['collect'] == 2),
+                '#attached' => array(		
+                  'library' => array(
+                    'location.autocomplete',
+                  ),
+                ),
               );
+              // This is much stricter now and there MUST be a country to use the autocomplete otherwise the site falls over!
+              if (!is_null($country)) {
+                $attrs['#autocomplete_route_name'] = 'location.autocomplete.country';
+                $attrs['#autocomplete_route_parameters'] = array('country' => $country);
+              }
+              return $attrs;
           }
 
         case 'country':
@@ -858,7 +561,7 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
               '#attributes' => array('class' => array('location_auto_country')),
               '#ajax' => array(
                 'callback' => '_location_country_ajax_callback',
-                'path' => 'system/ajax/' . implode('/', $settings['#parents']),
+                //'path' => 'system/ajax/' . implode('/', $settings['#parents']),
                 'wrapper' => 'location-dropdown-province-wrapper' . $wrapper_suffix,
                 'effect' => 'fade',
               ),
@@ -1098,7 +801,7 @@ function _location_country_ajax_callback($form, $form_state) {
   // way to check whether or not the province is being collected when putting
   // together the country form element in location_locationapi() when that
   // function is called with $op == 'field_expand'
-  if (arg(2) == 'locations' && isset($form['locations'][arg(3)]['province'])) {
+  /*if (arg(2) == 'locations' && isset($form['locations'][arg(3)]['province'])) {
     return $form['locations'][arg(3)]['province'];
   }
   elseif (isset($form[arg(2)][arg(3)][arg(4)])) {
@@ -1116,7 +819,7 @@ function _location_country_ajax_callback($form, $form_state) {
     }
 
     return $form[arg(2)][arg(3)][arg(4)]['province'];
-  }
+  }*/
 }
 
 /**
@@ -1833,14 +1536,14 @@ function location_settings($old = FALSE) {
   $form['multiple']['min'] = array(
     '#type' => 'select',
     '#title' => t('Minimum number of locations'),
-    '#options' => drupal_map_assoc(range(0, 100)),
+    '#options' => range(0, 100),
     '#default_value' => isset($old['multiple']['min']) ? $old['multiple']['min'] : 0,
     '#description' => t('The number of locations that are required to be filled in.'),
   );
   $form['multiple']['max'] = array(
     '#type' => 'select',
     '#title' => t('Maximum number of locations'),
-    '#options' => drupal_map_assoc(range(0, 100)),
+    '#options' => range(0, 100),
     '#default_value' => isset($old['multiple']['max']) ? $old['multiple']['max'] : 1,
     '#description' => t('The maximum number of locations that can be associated.'),
   );
@@ -1848,7 +1551,7 @@ function location_settings($old = FALSE) {
   $form['multiple']['add'] = array(
     '#type' => 'select',
     '#title' => t('Number of locations that can be added at once'),
-    '#options' => drupal_map_assoc(range(0, 100)),
+    '#options' => range(0, 100),
     '#default_value' => isset($old['multiple']['add']) ? $old['multiple']['add'] : 1,
     '#description' => t('The number of empty location forms to show when editing.'),
   );

@@ -1,0 +1,6 @@
+# All libraries are defined in alphabetical order.
+
+location.autocomplete:
+  version: VERSION
+  js:
+    location_autocomplete.js: {}

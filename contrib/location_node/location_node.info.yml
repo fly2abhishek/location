@@ -1,0 +1,7 @@
+type: module
+name: Node Locations
+description: Associate locations with nodes.
+dependencies:
+- location
+package: Location
+core: 8.x
