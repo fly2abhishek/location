@@ -119,18 +119,22 @@ function location_cache_flush() {
   \Drupal::keyValueExpirable('location')->deleteAll();
 }
 
-// TODO: Port to D8.
 /**
  * Theme function to fixup location elements.
  * @ingroup themable
  */
-function theme_location_element($variables) {
+function template_preprocess_location_element($variables) {
   $element = $variables['element'];
 
   // Prevent spurious "Array" from appearing.
   unset($element['#value']);
-
-  return theme('fieldset', array('element' => $element));
+  
+  $fieldset = array(
+    '#theme' => 'details',
+    '#description' => $element,
+  );
+  
+  $variables['fieldset'] = render($fieldset);
 }
 
 /**
@@ -188,20 +192,6 @@ function location_ctools_plugin_directory($module, $plugin) {
   if ($module == 'ctools' && !empty($plugin)) {
     return 'plugins/' . $plugin;
   }
-}
-
-// TODO. Port to D8. See location_element_info().
-
-function _location_process_location($element, $form_state) {
-  
-}
-
-// TODO: Port to D8. See hook_element_info().
-/**
- * Process location settings.
- */
-function _location_process_location_settings(&$element) {
-  
 }
 
 /**
@@ -1328,13 +1318,8 @@ function _location_geo_logic(&$location, $changed, $filled, $inhibit_geocode = F
 
 }
 
-/**
- * Perform validation against a location fieldset.
- */
-function location_element_validate($element, &$form_state) {
-  location_invoke_locationapi($element, 'validate');
-}
 
+// TODO: Port to D8.
 /**
  * Convert decimal degrees to degrees,minutes,seconds.
  */
@@ -1522,7 +1507,7 @@ function location_settings($old = FALSE) {
   }
 
   $form = array(
-    '#type' => 'fieldset',
+    '#type' => 'details',
     '#title' => t('Locative information'),
     '#tree' => TRUE,
   );
@@ -1632,22 +1617,22 @@ function location_form($settings, $locations) {
   // Show up to 'add' number of additional forms, in addition to the preexisting
   // locations. (Less if we'll hit 'max' first.)
   $numforms = min($numloc + $settings['multiple']['add'], $settings['multiple']['max']);
+  
+  $form = array(
+    '#type' => 'details',
+    '#tree' => TRUE,
+    '#title' => \Drupal::translation()->formatPlural($numforms, 'Location', 'Locations'),
+  );
 
   if ($settings['multiple']['max'] == 1 || $settings['multiple']['add'] == 1) {
-    $form = array(
+    $form += array(
       '#prefix' => '<div class="location-wrapper">',
       '#suffix' => '</div>',
-      '#tree' => TRUE,
-      '#weight' => $settings['form']['weight'],
     );
   }
   else {
-    $form = array(
-      '#type' => 'fieldset',
-      '#title' => format_plural($numforms, 'Location', 'Locations'),
-      '#tree' => TRUE,
+    $form += array(
       '#attributes' => array('class' => array('locations')),
-      '#weight' => $settings['form']['weight'],
       '#collapsible' => $settings['form']['collapsible'],
       '#collapsed' => $settings['form']['collapsed'],
     );

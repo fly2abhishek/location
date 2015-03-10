@@ -11,9 +11,8 @@
  * Alter the node forms.
  */
 function location_node_form_node_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
-
   // Get the config.
-  $config = \Drupal::config('location.variables');
+  $config = \Drupal::config('location_node.settings');
 
   // Get the node.
   $node = $form_state->getFormObject()->getEntity();
@@ -24,18 +23,20 @@ function location_node_form_node_form_alter(&$form, \Drupal\Core\Form\FormStateI
   if (is_null($settings)) {
     $settings = array();
   }
-  
-  // TODO: Complete the port to D8 from here.
+
+  $values = $form_state->getValues();
+
   // Add the Location fields on the node edit form.
   if (isset($settings['multiple']['max']) && $settings['multiple']['max'] > 0) {
-    if (!empty($form_state['rebuild']) && !empty($form_state['values']['locations'])) {
-      $locations = $form_state['values']['locations'];
+    if (($form_state->isRebuilding()) && !empty($values['locations'])) {
+      $locations = $values['locations'];
     }
     else {
       $locations = isset($node->locations) ? $node->locations : array();
     }
     $form['locations'] = location_form($settings, $locations);
-    $form['locations']['#group'] = 'additional_settings';
+    $form['locations']['#group'] = 'advanced';
+    $form['locations']['#weight'] = $settings['form']['weight'];
     unset($form['locations']['collapsible']);
     unset($form['locations']['collapsed']);
   }
@@ -169,7 +170,7 @@ function location_node_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NUL
  */
 function location_node_form_node_type_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
   // Get the config.
-  $config = \Drupal::config('location.variables');
+  $config = \Drupal::config('location_node.settings');
   
   // Get the node type.
   $type = $form_state->getFormObject()->getEntity()->get('type');
@@ -260,7 +261,7 @@ function location_node_settings_validate($form, &$form_state) {
  */
 function _location_node_type_save_submit($form, &$form_state) {
   // Get the config.
-  $config = \Drupal::configFactory()->getEditable('location.variables');
+  $config = \Drupal::configFactory()->getEditable('location_node.settings');
   
   // Get the values.
   $values = $form_state->getValues();
@@ -334,7 +335,13 @@ function location_node_content_extra_save($form, &$form_state) {
  *   Boolean depending on whether or not node locations are enabled.
  */
 function location_node_node_locations_enabled($type) {
-  $settings = variable_get('location_settings_node_' . $type, array());
+  // Get the config.
+  $config = \Drupal::config('location_node.settings');
+  
+  $settings = $config->get('location_settings_node_' . $type);
+  if (is_null($settings)) {
+    $settings = array();
+  }
   // If max number of locations is zero it is disabled.
   if (!empty($settings) && isset($settings['multiple']['max']) && !empty($settings['multiple']['max'])) {
     return TRUE;

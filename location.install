@@ -10,7 +10,8 @@
  */
 function location_uninstall() {
   // Remove all config.
-  ////\Drupal::config('location.settings')->delete();
+  $config = \Drupal::configFactory()->getEditable('location.variables');
+  $config->delete();
   
   // Clear the relevant cache.
   \Drupal::cache('bootstrap')->invalidate('variables');

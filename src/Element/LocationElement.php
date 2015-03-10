@@ -2,47 +2,55 @@
 
 /**
  * @file
- * Contains \Drupal\location\Element\LocationElementEntity.
+ * Contains \Drupal\location\Element\LocationElement.
  */
 
 namespace Drupal\location\Element;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element; // TODO: Remove this once confirmed it isn't necessary.
 use Drupal\Core\Render\Element\FormElement;
 
 /**
  * @FormElement("location_element")
  */
-/*class LocationElementEntityy extends FormElement {
+class LocationElement extends FormElement {
 
+  /**
+   * {@inheritdoc}
+   */
   public function getInfo() {
     $class = get_class($this);
     return array(
       '#input' => TRUE,
+      '#return_value' => 1,
       '#process' => array(
-        array($class, 'processLocation'),
+        array($class, 'processLocationElement'),
       ),
       '#tree' => TRUE,
       '#location_settings' => array(),
       '#required' => FALSE,
       '#attributes' => array('class' => array('location')),
+      // Element level validation.
       '#element_validate' => array(
-        array($class, 'validateLocation'),
+        array($class, 'validateLocationElement'),
       ),
     );
   }
-  
-  /*public static function valueCallback(&$element, $input, FormStateInterface $form_state) {
-    dsm($element);
-  }*/
-  
+
   /**
-   * Process a location element.
+   * {@inheritdoc}
    */
-  /*public static function processLocation(&$element, FormStateInterface $form_state, &$complete_form) {
-    dsm($element);
+  public static function valueCallback(&$element, $input, FormStateInterface $form_state) {}
+
+  /**
+   * Sets the #checked property of a checkbox element.
+   */
+  public static function processLocationElement(&$element, FormStateInterface $form_state, &$complete_form) {
+    //$element['#attributes']['type'] = 'location_settings';
+
     // This is TRUE if we are processing a form that already contains values, such as during an AJAX call.
-    drupal_add_css(drupal_get_path('module', 'location') . '/location.css');
+    ////drupal_add_css(drupal_get_path('module', 'location') . '/location.css');
     $element['#tree'] = TRUE;
   
     if (!isset($element['#title'])) {
@@ -135,7 +143,7 @@ use Drupal\Core\Render\Element\FormElement;
     }
   
     // @@@ Split into submit and view permissions?
-    if (user_access('submit latitude/longitude') && $fsettings['locpick']['collect']) {
+    if (\Drupal::currentUser()->hasPermission('submit latitude/longitude') && $fsettings['locpick']['collect']) {
       $element['locpick'] = array('#weight' => $fsettings['locpick']['weight']);
   
       if (location_has_coordinates($defaults, FALSE)) {
@@ -268,18 +276,21 @@ use Drupal\Core\Render\Element\FormElement;
     $element['#process'] = array_merge($element['#process'], $fieldset_info['#process']);
     if (isset($fieldset_info['#process'])) {
       foreach ($fieldset_info['#process'] as $process) {
-        $element = $process($element, $form_state, $form_state['complete form']);
+        $element = $process($element, $form_state, $complete_form);
       }
     }
-  
-    drupal_alter('location_element', $element);
+
+    \Drupal::moduleHandler()->alter('location_element', $element);
   
     return $element;
   }
 
-  public static function validateLocation(&$element, FormStateInterface $form_state, &$complete_form) {
-    // ...
-  }*/
+  /**
+   * Perform validation against a location fieldset.
+   */
+  public static function validateLocationElement(&$element, FormStateInterface $form_state, &$complete_form) {
+    //dsm("HERE");
+    //location_invoke_locationapi($element, 'validate');
+  }
 
-//}
-      
+}
