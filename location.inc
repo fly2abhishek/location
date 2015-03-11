@@ -41,6 +41,9 @@ include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'location') . '/earth
  * @ingroup Location
  */
 function location_map_link($location = array(), $link_text = 'See map: ') {
+  // Get the config.
+  $config = \Drupal::config('location.variables');
+
   if (!isset($location['country']) || $location['country'] == 'xx') {
     return '';
   }
@@ -57,10 +60,10 @@ function location_map_link($location = array(), $link_text = 'See map: ') {
   ) : location_map_link_providers();
   // Default providers will be taken from the country specific default providers
   // function if it exists, otherwise it will use the global function.
-  $selected_providers = variable_get(
-    'location_map_link_' . $location['country'],
-    function_exists($default_func) ? $default_func() : location_map_link_default_providers()
-  );
+  $selected_providers = $config->get('location_map_link_' . $location['country']);
+  if (is_null($selected_providers) {
+    $selected_providers = function_exists($default_func) ? $default_func() : location_map_link_default_providers();
+  }
 
   $links = array();
   foreach ($selected_providers as $mapper) {
@@ -69,9 +72,8 @@ function location_map_link($location = array(), $link_text = 'See map: ') {
     $link_func = function_exists($link_func) ? $link_func : 'location_map_link_' . $mapper;
     if (function_exists($link_func)) {
       if ($link = $link_func($location)) {
-        $links[] = '<a href="' . $link . '"' . (variable_get('location_maplink_external', 0) ? ' ' . variable_get(
-              'location_maplink_external_method',
-              'target="_blank"'
+        $links[] = '<a href="' . $link . '"' . ($config->get('location_maplink_external') ? ' ' . $config->get(
+              'location_maplink_external_method'
             ) : '') . '>' . $providers[$mapper]['name'] . '</a>';
       }
     }
@@ -500,9 +502,14 @@ function location_country_bounds($location = array()) {
  * @ingroup Location
  */
 function location_latlon_exact($location = array()) {
+  // Get the config.
+  $config = \Drupal::config('location.variables');
   $country = $location['country'];
   location_standardize_country_code($country);
-  $service = variable_get('location_geocode_' . $country, 'none');
+  $service = $config->get('location_geocode_' . $country);
+  if (is_null($service)) {
+    $service = 'none';
+  }
   if (!empty($country) && $service != 'none') {
     // Figure out what the exact function should be.
     if (strpos($service, '|')) {
@@ -579,7 +586,7 @@ function location_get_provinces($country = 'us') {
 
   location_standardize_country_code($country);
   if (!isset($provinces[$country])) {
-    if ($cache = cache_get("provinces:$country:$lang_code", 'location')) {
+    if ($cache = \Drupal::cache('location')->get("provinces:$country:$lang_code")) {
       $provinces[$country] = $cache->data;
     }
     else {
@@ -587,17 +594,17 @@ function location_get_provinces($country = 'us') {
       $func = 'location_province_list_' . $country;
       if (function_exists($func)) {
         $provinces[$country] = $func();
-        cache_set("provinces:$country:$lang_code", $provinces[$country], 'location');
+        \Drupal::cache('location')->set("provinces:$country:$lang_code", $provinces[$country]);
       }
     }
   }
 
   // Invoke hook_location_provinces_alter and
   // hook_location_provinces_COUNTRY_CODE_alter.
-  drupal_alter(
+  \Drupal::moduleHandler()->alter(
     array('location_provinces', 'location_provinces_' . $country),
     $provinces,
-    $country
+    $country 
   );
 
   return isset($provinces[$country]) ? $provinces[$country] : array();
@@ -749,7 +756,7 @@ function location_address2singleline($location = array()) {
     // @@@ Fix this!
     if (substr($location['province'], 0, 3) == $location['country'] . '-') {
       $address .= substr($location['province'], 3);
-      watchdog('Location', 'BUG: Country found in province attribute.');
+      \Drupal::logger('location')->notice('BUG: Country found in province attribute.');
     }
     else {
       $address .= $location['province'];
@@ -797,8 +804,6 @@ function location_get_general_geocoder_list() {
  * ISO 3166-1 alpha-2
  */
 function location_get_iso3166_list($upper = FALSE) {
-  include_once DRUPAL_ROOT . '/includes/locale.inc';
-
   // Statically cache a version of the core Drupal list of countries
   // with lower case country codes for use by this module.
   $countries = & drupal_static(__FUNCTION__);

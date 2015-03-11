@@ -221,11 +221,11 @@ function template_preprocess_location_settings(&$variables) {
     unset($element[$key]['default']['#title']);
     $row = array();
     $row[] = array('data' => '', 'class' => array('location-settings-drag', 'draggable'));
-    $row[] = drupal_render($element[$key]['name']);
-    $row[] = drupal_render($element[$key]['collect']);
-    $row[] = !empty($element[$key]['widget']) ? drupal_render($element[$key]['widget']) : '';
-    $row[] = drupal_render($element[$key]['default']);
-    $row[] = array('data' => drupal_render($element[$key]['weight']), 'class' => array('delta-order'));
+    $row[] = render($element[$key]['name']);
+    $row[] = render($element[$key]['collect']);
+    $row[] = !empty($element[$key]['widget']) ? render($element[$key]['widget']) : '';
+    $row[] = render($element[$key]['default']);
+    $row[] = array('data' => render($element[$key]['weight']), 'class' => array('delta-order'));
 
     $rows[] = array(
       '#weight' => (int) $element[$key]['weight']['#value'],
@@ -363,7 +363,9 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
             }
           }
           if (!$found) {
-            form_error($obj['province'], t('The specified province was not found in the specified country.'));
+            return array(
+              $obj['province']['#name'] => t('The specified province was not found in the specified country.')
+            );
           }
         }
       }
@@ -371,8 +373,8 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
       if (!empty($obj['locpick']) && is_array($obj['locpick'])) {
         // Can't specify just latitude or just longitude.
         if (isset($obj['locpick']['user_latitude']) && isset($obj['locpick']['user_longitude'])) {
-          if (_location_floats_are_equal($obj['locpick']['user_latitude'], 0) xor _location_floats_are_equal(
-              $obj['locpick']['user_longitude'],
+          if (_location_floats_are_equal($obj['locpick']['user_latitude']['#value'], 0) xor _location_floats_are_equal(
+              $obj['locpick']['user_longitude']['#value'],
               0
             )
           ) {
@@ -380,7 +382,9 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
             if (_location_floats_are_equal($obj['locpick']['user_longitude'], 0)) {
               $ref = & $a3['locpick']['user_longitude'];
             }
-            form_error($ref, t('You must fill out both latitude and longitude or you must leave them both blank.'));
+            return array(
+              $ref => t('You must fill out both latitude and longitude or you must leave them both blank.'),
+            );
           }
         }
       }
@@ -707,7 +711,7 @@ function location_save_locations(&$locations, $criteria) {
       )->fetchField();
 
       if ($count !== FALSE && $count == 0) {
-        watchdog('location', 'Deleting unreferenced location with LID %lid.', array('%lid' => $check));
+        \Drupal::logger('location')->notice('Deleting unreferenced location with LID %lid.', array('%lid' => $check));
         $location = array('lid' => $check);
         location_invoke_locationapi($location, 'delete');
         db_delete('location')
@@ -728,6 +732,9 @@ function location_save_locations(&$locations, $criteria) {
  *   Location array.
  */
 function location_load_location($lid) {
+  // Get the config.
+  $config = \Drupal::config('location.variables');
+
   $location = db_query('SELECT * FROM {location} WHERE lid = :lid', array(':lid' => $lid))->fetchAssoc();
   // @@@ Just thought of this, but I am not certain it is a good idea...
   if (empty($location)) {
@@ -744,7 +751,7 @@ function location_load_location($lid) {
   // JIT Geocoding
   // Geocodes during load, useful with bulk imports.
   if (isset($location['source']) && $location['source'] == LOCATION_LATLON_JIT_GEOCODING) {
-    if (variable_get('location_jit_geocoding', FALSE)) {
+    if ($config->get('location_jit_geocoding')) {
       _location_geo_logic($location, array('street' => 1), array());
       db_update('location')
         ->fields(
@@ -885,7 +892,7 @@ function location_has_coordinates($location, $canonical = FALSE) {
  */
 function location_invoke_locationapi(&$location, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
   $return = array();
-  foreach (module_implements('locationapi') as $name) {
+  foreach (\Drupal::moduleHandler()->getImplementations('locationapi') as $name) {
     $function = $name . '_locationapi';
     $result = $function($location, $op, $a3, $a4, $a5);
     if (isset($result) && is_array($result)) {
@@ -1030,37 +1037,41 @@ function location_save(&$location, $cow = TRUE, $criteria = array()) {
       }
     }
   }
+  
+  $fields = array();
+  foreach (array(
+             'name',
+             'street',
+             'additional',
+             'city',
+             'province',
+             'postal_code',
+             'country',
+             'latitude',
+             'longitude',
+             'source'
+           ) as $key) {
+    if (isset($location[$key])) {
+      $fields[$key] = $location[$key];
+    }
+  }
 
   if (!empty($location['lid'])) {
-    watchdog('location', 'Conserving lid %lid due to uniqueness.', array('%lid' => $location['lid']));
-    // Using a merge query instead of drupal_write_record to prevent failing to save
+    \Drupal::logger('location')->notice('Conserving lid %lid due to uniqueness.', array('%lid' => $location['lid']));
+    // Using a merge query instead of db_insert to prevent failing to save
     // if the lid happens to not exist in {location}, which has been seen in the wild.
     // Tested in mysql, sqlite, and postgresql.
-    $fields = array();
-    foreach (array(
-               'name',
-               'street',
-               'additional',
-               'city',
-               'province',
-               'postal_code',
-               'country',
-               'latitude',
-               'longitude',
-               'source'
-             ) as $key) {
-      if (isset($location[$key])) {
-        $fields[$key] = $location[$key];
-      }
-    }
     db_merge('location')
       ->key(array('lid' => $location['lid']))
       ->fields($fields)
       ->execute();
   }
   else {
-    unset($location['lid']);
-    drupal_write_record('location', $location);
+    //unset($location['lid']);
+    
+    $location['lid'] = db_insert('location')
+      ->fields($fields)
+      ->execute();
   }
 
   location_invoke_locationapi($location, 'save');
@@ -1395,6 +1406,9 @@ function location_token_list($type = 'all') {
  * Theme preprocess function for a location.
  */
 function template_preprocess_location(&$variables) {
+  // Get the config.
+  $config = \Drupal::config('location.variables');
+
   $location = $variables['location'];
   // This will get taken back out if map links are hidden.
   $location['map_link'] = TRUE;
@@ -1456,9 +1470,8 @@ function template_preprocess_location(&$variables) {
   if (!isset($location['province_name'])) {
     $location['province_name'] = '';
   }
-  $variables['province_print'] = variable_get(
-    'location_use_province_abbreviation',
-    1
+  $variables['province_print'] = $config->get(
+    'location_use_province_abbreviation'
   ) ? $location['province'] : $location['province_name'];
 }
 

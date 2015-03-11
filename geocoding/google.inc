@@ -32,12 +32,12 @@ function google_geocode_country_list_xml() {
     if (!defined('LIBXML_VERSION') || (version_compare(phpversion(), '5.1.0', '<'))) {
       $xml = simplexml_load_string($source->data, NULL);
       // Stores the XML in the cache to eventually use it later.
-      cache_set('location_google', $xml->asXML());
+      \Drupal::cache()->set('location_google', $xml->asXML());
     }
     else {
       $xml = simplexml_load_string($source->data, NULL, LIBXML_NOERROR | LIBXML_NOWARNING);
       // Store the XML in the cache to eventually use it later.
-      cache_set('location_google', $xml->asXML());
+      \Drupal::cache()->set('location_google', $xml->asXML());
     }
   }
 
@@ -121,9 +121,11 @@ function google_geocode_info() {
  *   an associative array with keys 'lat' and 'lon' containing the coordinates.
  */
 function google_geocode_location($location = array()) {
+  // Get the config.
+  $config = \Drupal::config('location.variables');
 
   $delay_trigger = & drupal_static(__FUNCTION__);
-  $delay = variable_get('location_geocode_google_delay', 0);
+  $delay = $config->get('location_geocode_google_delay');
   if ($delay > 0 && $delay_trigger) {
     usleep($delay * 1000);
   }
@@ -159,7 +161,7 @@ function google_geocode_location($location = array()) {
     }
   }
 
-  $key = variable_get('location_geocode_google_apikey', '');
+  $key = $config->get('location_geocode_google_apikey');
   if (empty($key) && function_exists('gmap_get_key')) {
     $key = gmap_get_key();
   }
@@ -181,14 +183,10 @@ function google_geocode_location($location = array()) {
 
   $status_code = $data->status;
   if ($status_code != 'OK') {
-    watchdog(
-      'location',
-      'Google geocoding returned status code: %status_code for the query url: %url',
-      array(
-        '%status_code' => $data->status,
-        '%url' => $url,
-      )
-    );
+    \Drupal::logger('location')->notice('Google geocoding returned status code: %status_code for the query url: %url', array(
+      '%status_code' => $data->status,
+      '%url' => $url,
+    ));
 
     return NULL;
   }

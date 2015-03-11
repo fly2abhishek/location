@@ -40,6 +40,8 @@ function location_node_form_node_form_alter(&$form, \Drupal\Core\Form\FormStateI
     unset($form['locations']['collapsible']);
     unset($form['locations']['collapsed']);
   }
+  
+  array_unshift($form['actions']['publish']['#submit'], '_location_node_form_save_submit');
 }
 
 // TODO: Port to D8.
@@ -76,7 +78,7 @@ function location_node_node_delete($node) {
  */
 function location_node_node_load($nodes) {
   foreach ($nodes as $nid => $node) {
-    $nodes[$nid]->locations = location_load_locations($node->vid);
+    $nodes[$nid]->locations = location_load_locations($node->vid->value);
     $nodes[$nid]->location = count($nodes[$nid]->locations) ? $nodes[$nid]->locations[0] : array();
   }
 }
@@ -98,9 +100,9 @@ function location_node_node_insert($node) {
  * Implements hook_node_update().
  */
 function location_node_node_update($node) {
-  if (location_node_node_locations_enabled($node->type)) {
+  if (location_node_node_locations_enabled($node->getType())) {
     if (!empty($node->locations)) {
-      location_save_locations($node->locations, array('nid' => $node->nid, 'vid' => $node->vid));
+      location_save_locations($node->locations, array('nid' => $node->nid->value, 'vid' => $node->vid->value));
     }
   }
 }
@@ -281,10 +283,22 @@ function _location_node_type_save_submit($form, &$form_state) {
 }
 
 /**
+ * Custom submit function to ensure location data will be saved.
+ */
+function _location_node_form_save_submit($form, &$form_state) {
+  // Get the node.
+  $node = $form_state->getFormObject()->getEntity();
+  // Check if there is location data.
+  if ($locations = $form_state->getValue('locations')) {
+    $node->locations = $locations;
+  }
+}
+
+/**
  * Alter the content_field_overview_form form.
  */
 function location_node_form_content_field_overview_form_alter(&$form, &$form_state) {
-  $form['#submit'][] = 'location_node_content_extra_save';
+  /****$form['#submit'][] = 'location_node_content_extra_save';****/
 }
 
 /**

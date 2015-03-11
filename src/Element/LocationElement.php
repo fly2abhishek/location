@@ -209,9 +209,9 @@ class LocationElement extends FormElement {
         ),
         '#suffix' => '</div>',
       );
-      if (function_exists('gmap_get_auto_mapid') && variable_get('location_usegmap', FALSE)) {
+      if (function_exists('gmap_get_auto_mapid') && $config->get('location_usegmap')) {
         $mapid = gmap_get_auto_mapid();
-        $map = array_merge(gmap_defaults(), gmap_parse_macro(variable_get('location_locpick_macro', '[gmap]')));
+        $map = array_merge(gmap_defaults(), gmap_parse_macro($config->get('location_locpick_macro')));
         $map['id'] = $mapid;
         $map['points'] = array();
         $map['pointsOverlays'] = array();
@@ -289,8 +289,12 @@ class LocationElement extends FormElement {
    * Perform validation against a location fieldset.
    */
   public static function validateLocationElement(&$element, FormStateInterface $form_state, &$complete_form) {
-    //dsm("HERE");
-    //location_invoke_locationapi($element, 'validate');
+    $valid = location_invoke_locationapi($element, 'validate');
+    if (is_array($valid)) {
+      foreach ($valid as $element => $error) {
+        $form_state->setErrorByName($element, $error); 
+      }
+    }
   }
 
 }
