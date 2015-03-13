@@ -4,6 +4,8 @@
  * @file
  * Additional field handler.
  */
+ 
+use Drupal\Component\Utility\String;
 
 // @codingStandardsIgnoreStart
 class location_handler_field_location_additional extends views_handler_field {
@@ -22,7 +24,7 @@ class location_handler_field_location_additional extends views_handler_field {
    * {@inheritdoc}
    */
   public function render($values) {
-    return check_plain(trim($values->{$this->aliases['additional']}));
+    return String::checkPlain(trim($values->{$this->aliases['additional']}));
   }
 }
 // @codingStandardsIgnoreEnd

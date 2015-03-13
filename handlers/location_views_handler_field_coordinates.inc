@@ -4,6 +4,8 @@
  * @file
  * Coordinates field handler.
  */
+ 
+use Drupal\Component\Utility\String;
 
 // @codingStandardsIgnoreStart
 class location_views_handler_field_coordinates extends location_views_handler_field_latitude {
@@ -20,13 +22,20 @@ class location_views_handler_field_coordinates extends location_views_handler_fi
    */
   public function render($values) {
     if ($this->options['style'] == 'dms') {
-      return theme('location_latitude_dms', array('latitude' => $values->{$this->field_alias})) . ', ' . theme(
-        'location_longitude_dms',
-        array('longitude' => $values->{$this->aliases['longitude']})
+      $render = array(
+        '#theme' => 'location_latitude_dms',
+        '#latitude' => $values->{$this->field_alias},
       );
+      $return = render($render);
+      $render = array(
+        '#theme' => 'location_longitude_dms',
+        '#longitude' => $values->{$this->aliases['longitude']},
+      );
+      $return .= render($render);
+      return $return;
     }
     else {
-      return check_plain($values->{$this->field_alias}) . ', ' . check_plain($values->{$this->aliases['longitude']});
+      return String::checkPlain($values->{$this->field_alias}) . ', ' . String::checkPlain($values->{$this->aliases['longitude']});
     }
   }
 }

@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Template for displaying locations.
+ */
+#}
+
+{% if locations is not empty %}
+  <div class="location-locations-display">
+    <h3 class="location-locations-header">
+    {% set count = locations|length %}
+    {% trans %}
+      Location
+    {% plural count %}
+      Locations
+    {% endtrans %}
+    </h3>
+    <div class="location-locations-wrapper">
+      {% for location in locations %}
+        {{ location }}
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}

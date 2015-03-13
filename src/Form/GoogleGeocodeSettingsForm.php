@@ -84,8 +84,7 @@ class GoogleGeocodeSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    dsm($form_state);
-    /*parent::submitForm($form, $form_state);
+    parent::submitForm($form, $form_state);
     $config = $this->config('location.variables');
     
     // Set up an array of config to check for values.
@@ -108,7 +107,7 @@ class GoogleGeocodeSettingsForm extends ConfigFormBase {
     }
     
     // Save the config.
-    $config->save();*/
+    $config->save();
   }
 
 }

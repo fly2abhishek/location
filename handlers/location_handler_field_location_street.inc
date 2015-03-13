@@ -4,6 +4,8 @@
  * @file
  * Province field handler.
  */
+ 
+use Drupal\Component\Utility\String;
 
 // @codingStandardsIgnoreStart
 class location_handler_field_location_street extends views_handler_field {
@@ -51,12 +53,12 @@ class location_handler_field_location_street extends views_handler_field {
   public function render($values) {
     $parts = array();
     if ($this->options['style'] != 'additional') {
-      $parts[] = check_plain($values->{$this->field_alias});
+      $parts[] = String::checkPlain($values->{$this->field_alias});
     }
     if ($this->options['style'] != 'street') {
       $additional = trim($values->{$this->aliases['additional']});
       if (!empty($additional)) {
-        $parts[] = check_plain($values->{$this->aliases['additional']});
+        $parts[] = String::checkPlain($values->{$this->aliases['additional']});
       }
     }
 

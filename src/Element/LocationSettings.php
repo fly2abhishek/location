@@ -8,7 +8,6 @@
 namespace Drupal\location\Element;
 
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Render\Element; // TODO: Remove this once confirmed it isn't necessary.
 use Drupal\Core\Render\Element\FormElement;
 
 /**

@@ -5,6 +5,7 @@
  * Short description.
  */
 
+use Drupal\Component\Utility\String;
 
 /**
  * Implementation of hook_token_values().
@@ -29,7 +30,7 @@ function _location_token_values($type, $object = NULL) {
 
         foreach ($location as $field => $value) {
           if (!is_array($value)) {
-            $values["location-{$field}_{$key}"] = check_plain($value);
+            $values["location-{$field}_{$key}"] = String::checkPlain($value);
           }
         }
         // Backwards compatibility.

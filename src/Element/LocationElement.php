@@ -8,7 +8,6 @@
 namespace Drupal\location\Element;
 
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Render\Element; // TODO: Remove this once confirmed it isn't necessary.
 use Drupal\Core\Render\Element\FormElement;
 
 /**
@@ -280,7 +279,7 @@ class LocationElement extends FormElement {
     }
 
     \Drupal::moduleHandler()->alter('location_element', $element);
-  
+
     return $element;
   }
 
@@ -290,8 +289,8 @@ class LocationElement extends FormElement {
   public static function validateLocationElement(&$element, FormStateInterface $form_state, &$complete_form) {
     $valid = location_invoke_locationapi($element, 'validate');
     if (is_array($valid)) {
-      foreach ($valid as $element => $error) {
-        $form_state->setErrorByName($element, $error); 
+      foreach ($valid as $elem => $error) {
+        $form_state->setErrorByName($elem, $error);
       }
     }
   }

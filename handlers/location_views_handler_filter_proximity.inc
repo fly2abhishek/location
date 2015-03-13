@@ -4,6 +4,8 @@
  * @file
  * General proximity filter for location latitude/longitude.
  */
+ 
+use Drupal\Component\Utility\String;
 
 // @codingStandardsIgnoreStart
 class location_views_handler_filter_proximity extends views_handler_filter {
@@ -320,7 +322,7 @@ class location_views_handler_filter_proximity extends views_handler_filter {
           foreach ($user_locations as $i => $location) {
             if (isset($location['latitude']) && isset($location['longitude'])) {
               if (!empty($location['name'])) {
-                $location_options[$i] = t(check_plain($location['name']));
+                $location_options[$i] = t(String::checkPlain($location['name']));
               }
               else {
                 $location_options[$i] = t('Location #@num', array('@num' => $i + 1));

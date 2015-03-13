@@ -4,6 +4,8 @@
  * @file
  * Country field handler.
  */
+ 
+use Drupal\Component\Utility\String;
 
 // @codingStandardsIgnoreStart
 class location_handler_field_location_country extends views_handler_field {
@@ -36,10 +38,10 @@ class location_handler_field_location_country extends views_handler_field {
    */
   public function render($values) {
     if ($this->options['style'] == 'name') {
-      return check_plain(location_country_name($values->{$this->field_alias}));
+      return String::checkPlain(location_country_name($values->{$this->field_alias}));
     }
     else {
-      return check_plain(strtoupper($values->{$this->field_alias}));
+      return String::checkPlain(strtoupper($values->{$this->field_alias}));
     }
   }
 }

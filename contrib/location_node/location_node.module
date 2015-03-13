@@ -40,7 +40,7 @@ function location_node_form_node_form_alter(&$form, \Drupal\Core\Form\FormStateI
     unset($form['locations']['collapsible']);
     unset($form['locations']['collapsed']);
   }
-  
+
   array_unshift($form['actions']['publish']['#submit'], '_location_node_form_save_submit');
 }
 
@@ -107,30 +107,34 @@ function location_node_node_update($node) {
   }
 }
 
-// TODO: Port to D8.
 /**
- * Implements hook_node_view().
+ * Implements hook_ENTITY_TYPE_view().
  */
-function location_node_node_view($node, $view_mode) {
-  $settings = variable_get('location_settings_node_' . $node->type, array());
+function location_node_node_view(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode, $langcode) {
+  // Get the config.
+  $config = \Drupal::config('location.variables');
+  $location_node_config = \Drupal::config('location_node.settings');  
 
+  $settings = $location_node_config->get('location_settings_node_' . $entity->getType(), array());
+
+  // TODO: Check this part of the if statement is working as expected.  
   if ($view_mode == 'rss') {
     $mode = isset($settings['rss']['mode']) ? $settings['rss']['mode'] : 'simple';
     if ($mode == 'none') {
       return;
     }
-    if (is_array($node->locations) && !empty($node->locations)) {
+    if (is_array($entity->locations) && !empty($entity->locations)) {
       require_once drupal_get_path('module', 'location') . '/location.georss.inc';
-      $node->rss_namespaces += location_rss_namespaces($mode);
-      foreach ($node->locations as $location) {
+      $entity->rss_namespaces += location_rss_namespaces($mode);
+      foreach ($entity->locations as $location) {
         if (($item = location_rss_item($location, $mode))) {
-          $node->rss_elements[] = $item;
+          $entity->rss_elements[] = $item;
         }
       }
     }
   }
   else {
-    if (variable_get('location_display_location', 1) && !empty($node->locations)) {
+    if ($config->get('location_display_location') && !empty($entity->locations)) {
       if (isset($settings['display']['teaser']) && isset($settings['display']['full'])) {
         if (($view_mode == 'teaser' && $settings['display']['teaser']) || (in_array(
               $view_mode,
@@ -140,7 +144,7 @@ function location_node_node_view($node, $view_mode) {
               )
             ) && $settings['display']['full'])
         ) {
-          $node->content['locations'] = location_display($settings, $node->locations);
+          $build['locations'] = location_display($settings, $entity->locations);
         }
       }
     }
@@ -298,7 +302,7 @@ function _location_node_form_save_submit($form, &$form_state) {
  * Alter the content_field_overview_form form.
  */
 function location_node_form_content_field_overview_form_alter(&$form, &$form_state) {
-  /****$form['#submit'][] = 'location_node_content_extra_save';****/
+  $form['#submit'][] = 'location_node_content_extra_save';
 }
 
 /**

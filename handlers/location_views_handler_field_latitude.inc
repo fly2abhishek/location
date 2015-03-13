@@ -4,6 +4,8 @@
  * @file
  * Latitude field handler.
  */
+ 
+use Drupal\Component\Utility\String;
 
 // @codingStandardsIgnoreStart
 class location_views_handler_field_latitude extends views_handler_field {
@@ -39,10 +41,14 @@ class location_views_handler_field_latitude extends views_handler_field {
    */
   public function render($values) {
     if ($this->options['style'] == 'dd') {
-      return check_plain($values->{$this->field_alias});
+      return String::checkPlain($values->{$this->field_alias});
     }
     else {
-      return theme('location_latitude_dms', array('latitude' => $values->{$this->field_alias}));
+      $render = array(
+        '#theme' => 'location_latitude_dms',
+        '#latitude' => $values->{$this->field_alias},
+      );
+      return render($render);
     }
   }
 }

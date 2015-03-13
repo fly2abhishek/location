@@ -13,7 +13,11 @@ class location_views_handler_field_longitude extends location_views_handler_fiel
    */
   public function render($values) {
     if ($this->options['style'] == 'dms') {
-      return theme('location_longitude_dms', array('longitude' => $values->{$this->field_alias}));
+      $render = array(
+        '#theme' => 'location_longitude_dms',
+        '#longitude' => $values->{$this->field_alias},
+      );
+      return render($render);
     }
 
     return parent::render($values);

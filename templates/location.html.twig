@@ -1,0 +1,74 @@
+{#
+/**
+ * @file
+ * Template for displaying single location.
+ */
+#}
+
+<div class="location vcard" itemscope itemtype="http://schema.org/PostalAddress">
+  <div class="adr">
+  {% if name is not empty %}
+    <span class="fn" itemprop="name">{{ name }}</span>
+  {% endif %}
+  {% if street is not empty or additional is not empty %}
+    <div class="street-address">
+      <span itemprop="streetAddress">{{ street }}</span>
+      {% if additional is not empty %}
+        <span class="additional" itemprop="streetAddress">
+          {{ additional }}
+        </span>
+      {% endif %}
+    </div>
+  {% endif %}
+  {% if postal_code is not empty %}
+    <span class="postal-code" itemprop="postalCode">{{ postal_code }}</span>
+  {% endif %}
+  {% if city is not empty %}
+    <span class="locality" itemprop="addressLocality">
+      {{ city }}
+    </span>
+    {% if province is not empty %}
+    , 
+    {% endif %}
+  {% endif %}
+  {% if province is not empty %}
+    <span class="region" itemprop="addressRegion">{{ province_print }}</span>
+  {% endif %}
+  {% if country_name is not empty %}
+    <div class="country-name" itemprop="addressCountry">{{ country_name }}</div>
+  {% endif %}
+  {% if email is not empty %}
+    <div class="email">
+      <abbr class="type" title="email">{{ 'Email address'|t }}:</abbr>
+      <span><a href="mailto:{{ email }}" itemprop="email">{{ email }}</a></span>
+    </div>
+  {% endif %}
+  {% if phone is not empty %}
+    <div class="tel">
+      <abbr class="type" title="voice">{{ 'Phone'|t }}:</abbr>
+      <span class="value" itemprop="telephone">{{ phone }}</span>
+    </div>
+  {% endif %}
+  {% if fax is not empty %}
+    <div class="tel">
+      <abbr class="type" title="fax">{{ 'Fax'|t }}:</abbr>
+      <span itemprop="faxNumber">{{ fax }}</span>
+    </div>
+  {% endif %}
+  {# "Geo" microformat, see http://microformats.org/wiki/geo. #}
+  {% if latitude is defined and longitude is defined %}
+    {# Assume that 0, 0 is invalid. #}
+    {% if latitude != 0 or longitude != 0 %}
+      <span class="geo">
+        <abbr class="latitude" title="{{ latitude }}">{{ latitude_dms }}</abbr>,
+        <abbr class="longitude" title="{{ longitude }}">{{ longitude_dms }}</abbr>
+      </span>
+    {% endif %}
+  {% endif %}
+  </div>
+  {% if map_link is not empty %}
+    <div class="map-link">
+      {{ map_link }}
+    </div>
+  {% endif %}
+</div>

@@ -4,6 +4,8 @@
  * @file
  * Plugin to provide an relationship handler for location data from node.
  */
+ 
+use Drupal\Component\Utility\String;
 
 /**
  * Implement hook_[relationship_name]_ctools_relationships().
@@ -128,7 +130,7 @@ function location_location_from_node_settings_form($form, &$form_state) {
     $cck_options = array();
     foreach (field_info_fields() as $field) {
       if ($field['type'] == 'location') {
-        $cck_options[$field['field_name']] = check_plain($field['field_name']);
+        $cck_options[$field['field_name']] = String::checkPlain($field['field_name']);
       }
     }
     if (!empty($cck_options)) {

@@ -4,6 +4,8 @@
  * @file
  * Creates a location context.
  */
+ 
+use Drupal\Component\Utility\String;
 
 /**
  * Implement hook_[context_name]_ctools_contexts().
@@ -88,7 +90,7 @@ function location_context_location_convert_list() {
 function location_context_location_convert($context, $type) {
   $fields = location_context_location_convert_list();
   if (isset($fields[$type]) && isset($context->data[$type])) {
-    return check_plain($context->data[$type]);
+    return String::checkPlain($context->data[$type]);
   }
 
   return t('Unknown location keyword');

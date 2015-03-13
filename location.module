@@ -23,6 +23,7 @@ include_once DRUPAL_ROOT . '/' . LOCATION_PATH . '/location.inc';
 
 use Drupal\Core\Url;
 use Drupal\node\Entity\NodeType;
+use Drupal\Component\Utility\String;
 
 // TODO: Determine if anything needs to happen with this.
 /**
@@ -97,7 +98,7 @@ function location_cache_flush() {
  * Theme function to fixup location elements.
  * @ingroup themable
  */
-function template_preprocess_location_element($variables) {
+/****function template_preprocess_location_element($variables) {
   $element = $variables['element'];
 
   // Prevent spurious "Array" from appearing.
@@ -109,7 +110,7 @@ function template_preprocess_location_element($variables) {
   );
   
   $variables['fieldset'] = render($fieldset);
-}
+}****/
 
 /**
  * Implements hook_theme().
@@ -132,10 +133,14 @@ function location_theme() {
       ),
     ),
     'location_latitude_dms' => array(
-      'variables' => array('latitude'),
+      'variables' => array(
+        'latitude' => NULL,
+      ),
     ),
     'location_longitude_dms' => array(
-      'variables' => array('longitude'),
+      'variables' => array(
+        'longitude' => NULL,
+      ),
     ),
     'location_map_link_options' => array(
       'render element' => 'form',
@@ -227,7 +232,6 @@ function template_preprocess_location_settings(&$variables) {
   $variables['table'] = render($table);
 }
 
-// TODO: Port to D8.
 /**
  * Field names.
  */
@@ -322,6 +326,10 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
     // @codingStandardsIgnoreEnd
 
     case 'validate':
+      // TODO: Find a better way to achieve this. Basically we are retrieving the relevant ID of the form element
+      // so that we can set an error on it.
+      $id = str_replace('locations', 'locations]', $obj['#name']);
+
       if (!empty($obj['country']) && $obj['country']['#value'] != 'xx') {
         if (!empty($obj['province']) && !empty($obj['province']['#value']) && $obj['province']['#value'] != 'xx') {
           $provinces = location_get_provinces($obj['country']['#value']);
@@ -334,8 +342,9 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
             }
           }
           if (!$found) {
+            $field = $id . '[province';
             return array(
-              $obj['province']['#name'] => t('The specified province was not found in the specified country.')
+              $field => t('The specified province was not found in the specified country.')
             );
           }
         }
@@ -349,12 +358,12 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
               0
             )
           ) {
-            $ref = & $a3['locpick']['user_latitude'];
-            if (_location_floats_are_equal($obj['locpick']['user_longitude'], 0)) {
-              $ref = & $a3['locpick']['user_longitude'];
+            $field = $id . '[locpick][user_latitude';
+            if (_location_floats_are_equal($obj['locpick']['user_longitude']['#value'], 0)) {
+              $field = 'locations][0][locpick][user_longitude';
             }
             return array(
-              $ref => t('You must fill out both latitude and longitude or you must leave them both blank.'),
+              $field => t('You must fill out both latitude and longitude or you must leave them both blank.'),
             );
           }
         }
@@ -445,7 +454,7 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
             case 'select':
 
               // Options are defined once during hook_element implementation.
-              // @see _location_process_location
+              // @see \Drupal\location\Element\LocationElement::processLocationElement().
               // $options = array_merge(array('' => t('Select'), 'xx' => t('NOT LISTED')), location_get_provinces($country));
               if (!empty($settings['#parents'])) {
                 $wrapper_suffix = '-' . implode('-', $settings['#parents']);
@@ -466,6 +475,7 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
               );
             // @codingStandardsIgnoreEnd
 
+            // TODO: Verify this is working as expected.
             case 'autocomplete':
             default:
               $attrs = array(
@@ -491,6 +501,7 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
               return $attrs;
           }
 
+        // TODO: Verify this is working as expected.
         case 'country':
           // Force default.
           if ($settings['collect'] == 4) {
@@ -584,7 +595,6 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
   }
 }
 
-// TODO: Port to D8.
 /**
  * Load associated locations.
  *
@@ -719,6 +729,7 @@ function location_load_location($lid) {
     );
   }
 
+  // TODO: Verify this is working as expected.
   // JIT Geocoding
   // Geocodes during load, useful with bulk imports.
   if (isset($location['source']) && $location['source'] == LOCATION_LATLON_JIT_GEOCODING) {
@@ -1083,7 +1094,7 @@ function location_calc_difference($oldloc, $newloc, &$changes) {
       continue;
     }
 
-    // It wasn't equal, but perhaps it was equivilent?
+    // It wasn't equal, but perhaps it was equivalent?
     $results = location_invoke_locationapi($newloc, 'isunchanged', $k, $oldloc[$k]);
     // First, assume changed.
     $waschanged = TRUE;
@@ -1235,7 +1246,6 @@ function _location_geo_logic(&$location, $changed, $filled, $inhibit_geocode = F
       !empty($changed['country']) || !empty($changed['postal_code']) ||
       $location['source'] == LOCATION_LATLON_USER_SUBMITTED
     ) {
-
       // Attempt exact geocoding.
       if ($data = location_latlon_exact($location)) {
         $location['source'] = LOCATION_LATLON_GEOCODED_EXACT;
@@ -1301,7 +1311,6 @@ function _location_geo_logic(&$location, $changed, $filled, $inhibit_geocode = F
 }
 
 
-// TODO: Port to D8.
 /**
  * Convert decimal degrees to degrees,minutes,seconds.
  */
@@ -1322,7 +1331,7 @@ function location_dd_to_dms($coord) {
 /**
  * Display a coordinate.
  */
-function theme_location_latitude_dms($variables) {
+function template_preprocess_location_latitude_dms(&$variables) {
   $latitude = $variables['latitude'];
   $output = '';
   list($degrees, $minutes, $seconds, $negative) = location_dd_to_dms($latitude);
@@ -1333,14 +1342,14 @@ function theme_location_latitude_dms($variables) {
   else {
     $output .= 'S';
   }
-
-  return $output;
+  
+  $variables['output'] = $output;
 }
 
 /**
  * Theme callback for longtitude dms.
  */
-function theme_location_longitude_dms($variables) {
+function template_preprocess_location_longitude_dms(&$variables) {
   $longitude = $variables['longitude'];
   $output = '';
   list($degrees, $minutes, $seconds, $negative) = location_dd_to_dms($longitude);
@@ -1352,7 +1361,7 @@ function theme_location_longitude_dms($variables) {
     $output .= 'W';
   }
 
-  return $output;
+  $variables['output'] = $output;
 }
 
 /**
@@ -1400,7 +1409,7 @@ function template_preprocess_location(&$variables) {
       $variables[$key] = '';
       // Arrays can't be converted, ignore them.
       if (!empty($location[$key]) && !is_array($location[$key])) {
-        $variables[$key] = check_plain($location[$key]);
+        $variables[$key] = String::checkPlain($location[$key]);
       }
     }
   }
@@ -1417,15 +1426,23 @@ function template_preprocess_location(&$variables) {
   $variables['latitude'] = '';
   $variables['latitude_dms'] = '';
   if (!empty($location['latitude'])) {
-    $variables['latitude'] = check_plain($location['latitude']);
-    $variables['latitude_dms'] = theme('location_latitude_dms', array('latitude' => $location['latitude']));
+    $variables['latitude'] = String::checkPlain($location['latitude']);
+    $render = array(
+      '#theme' => 'location_latitude_dms',
+      '#latitude' => $location['latitude'],
+    );
+    $variables['latitude_dms'] = render($render);
   }
 
   $variables['longitude'] = '';
   $variables['longitude_dms'] = '';
   if (!empty($location['longitude'])) {
-    $variables['longitude'] = check_plain($location['longitude']);
-    $variables['longitude_dms'] = theme('location_longitude_dms', array('longitude' => $location['longitude']));
+    $variables['longitude'] = String::checkPlain($location['longitude']);
+    $render = array(
+      '#theme' => 'location_longitude_dms',
+      '#longitude' => $location['longitude'],
+    );
+    $variables['longitude_dms'] = render($render);
   }
 
   // Add a country-specific template suggestion.
@@ -1478,7 +1495,12 @@ function template_preprocess_locations(&$variables) {
   $variables['rawlocs'] = $locs;
 
   foreach ($locs as $location) {
-    $variables['locations'][] = theme('location', array('location' => $location, 'hide' => $variables['hide']));
+    $render = array(
+      '#theme' => 'location',
+      '#location' => $location,
+      '#hide' => $variables['hide']
+    );
+    $variables['locations'][] = render($render);
   }
 }
 
@@ -1642,10 +1664,6 @@ function location_form($settings, $locations) {
   // Tidy up the form in the single location case.
   if ($numforms == 1) {
     $form[0]['#title'] = t('Location', array(), array('context' => 'geolocation'));
-    // If the user had configured the form for a single location, inherit
-    // the collapsible / collapsed settings.
-    $form[0]['#collapsible'] = $settings['form']['collapsible'];
-    $form[0]['#collapsed'] = $settings['form']['collapsed'];
   }
 
   return $form;

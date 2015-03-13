@@ -277,6 +277,9 @@ function location_geocode_au_providers() {
  * Yahoo settings.
  */
 function location_geocode_au_yahoo_settings() {
+  // Get the config.
+  $config = \Drupal::config('location.variables');
+
   $form = array();
 
   $form['location_geocode_au_yahoo_appid'] = array(
@@ -284,7 +287,7 @@ function location_geocode_au_yahoo_settings() {
     '#title' => t('Yahoo! Web Services Application ID'),
     '#size' => 64,
     '#maxlength' => 128,
-    '#default_value' => variable_get('location_geocode_au_yahoo_appid', 'YahooDemo'),
+    '#default_value' => $config->get('location_geocode_au_yahoo_appid'),
     '#description' => t(
       'Unless you are using this site to test and develop, you will need to obtain a Yahoo! Web Services Application ID from the %network_link.  If you are using for development and testing purposes, you can use \'YahooDemo\' as your AppID.  When getting an Application ID from Yahoo!, be sure to review the %usage_policy.',
       array(
@@ -301,14 +304,15 @@ function location_geocode_au_yahoo_settings() {
  * Yahoo geocode.
  */
 function location_geocode_au_yahoo($location = array()) {
-  $service_url = "http://api.local.yahoo.com/MapsService/V1/geocode?appid=" . variable_get(
-      'location_geocode_au_yahoo_appid',
-      "YahooDemo"
-    ) . "&location=";
+  // Get the config.
+  $config = \Drupal::config('location.variables');
+
+  $service_url = "http://api.local.yahoo.com/MapsService/V1/geocode?appid=" . $config->get('location_geocode_au_yahoo_appid') . "&location=";
 
   $address = location_address2singleline($location);
 
-  $http_reply = drupal_http_request($service_url . urlencode($address));
+  $client = Drupal::httpClient();
+  $http_reply = $client->createRequest('GET', $service_url . urlencode($address));
 
   // Address may have been improperly formatted or invalid.
   if ($http_reply->code == 400) {
