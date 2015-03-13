@@ -61,7 +61,7 @@ function location_map_link($location = array(), $link_text = 'See map: ') {
   // Default providers will be taken from the country specific default providers
   // function if it exists, otherwise it will use the global function.
   $selected_providers = $config->get('location_map_link_' . $location['country']);
-  if (is_null($selected_providers) {
+  if (is_null($selected_providers)) {
     $selected_providers = function_exists($default_func) ? $default_func() : location_map_link_default_providers();
   }
 

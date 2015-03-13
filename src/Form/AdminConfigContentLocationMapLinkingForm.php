@@ -92,7 +92,7 @@ class AdminConfigContentLocationMapLinkingForm extends ConfigFormBase {
       }
     }
 
-    $form['#theme'] = 'location_map_link_options';
+    $form['countries']['#theme'] = 'location_map_link_options';
   
     return parent::buildForm($form, $form_state);
   }

@@ -44,7 +44,7 @@ class AdminConfigContentLocationGeocodingForm extends ConfigFormBase {
       '#description' => t(
         'The Google Maps geocoding API returns results with a given accuracy. Any responses below this minimum accuracy will be ignored. See a !accuracy_values_link.',
         array('!accuracy_values_link' => '<a href="http://code.google.com/apis/maps/documentation/reference.html#GGeoAddressAccuracy">description of these values</a>')
-      )
+      ),
     );
     $form['countries'] = array();
   
@@ -98,7 +98,7 @@ class AdminConfigContentLocationGeocodingForm extends ConfigFormBase {
         }
       }
       
-      $current_value = \Drupal::cache()->get('location_geocode_' . $country_iso);
+      $current_value = $config->get('location_geocode_' . $country_iso);
       if (is_null($current_value)) {
         $current_value = 'none';
       }
@@ -152,10 +152,9 @@ class AdminConfigContentLocationGeocodingForm extends ConfigFormBase {
         }
       }
     }
+    
+    $form['countries']['#theme'] = 'location_geocoding_options';
 
-    $form['#theme'] = 'location_geocoding_options';
-    array_unshift($form['#submit'], 'location_geocoding_options_form_submit');
-  
     return parent::buildForm($form, $form_state);
   }
   
@@ -171,16 +170,16 @@ class AdminConfigContentLocationGeocodingForm extends ConfigFormBase {
     
     foreach ($form_state->getValues() as $key => $value) {
       if (substr($key, 0, 17) == 'location_geocode_' && $key != 'location_geocode_google_minimum_accuracy') {
+        $config->set($key, $value);
         if (in_array($value, $general_geocoders)) {
           $general_geocoders_in_use[$value] = $value;
-          $config->set($key, $value);
         }
       }
     }
     
     $config->set('location_geocode_google_minimum_accuracy', $form_state->getValue('location_geocode_google_minimum_accuracy'));
     $config->set('location_general_geocoders_in_use', $general_geocoders_in_use);
-    
+
     // Save the config.
     $config->save();
   }

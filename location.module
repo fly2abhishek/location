@@ -55,7 +55,7 @@ function location_help($route_name, \Drupal\Core\Routing\RouteMatchInterface $ro
           ',
           array(
             '@admin-node-configure-types' => Url::fromRoute('entity.node_type.collection')->toString(),
-            '@admin-settings-location' => Url::fromRoute('location.admin.config.content.location_form')->toString(),
+            '@admin-settings-location' => Url::fromRoute('location.admin.config.content.location.main_form')->toString(),
             '@external-http-cvs-drupal-org' => Url::fromUri('http://cvs.drupal.org/viewcvs/drupal/contributions/modules/location/database/'),
           )
         ) . '</ul>';
@@ -66,32 +66,6 @@ function location_help($route_name, \Drupal\Core\Routing\RouteMatchInterface $ro
 
       return $output;
   }
-}
-
-// TODO: Port to D8.
-/**
- * Implements hook_element_info().
- */
-function location_element_info() {
-  return array(
-    'location_element' => array(
-      '#input' => TRUE,
-      '#process' => array('_location_process_location'),
-      '#tree' => TRUE,
-      '#location_settings' => array(),
-      '#required' => FALSE,
-      '#attributes' => array('class' => array('location')),
-      // Element level validation.
-      '#element_validate' => array('location_element_validate'),
-    ),
-    /*'location_settings' => array(
-      '#input' => TRUE,
-      '#process' => array('_location_process_location_settings'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#tree' => TRUE,
-    ),*/
-  );
 }
 
 /**
@@ -165,17 +139,14 @@ function location_theme() {
     ),
     'location_map_link_options' => array(
       'render element' => 'form',
-      'file' => 'location.admin.inc',
     ),
     'location_geocoding_options' => array(
       'render element' => 'form',
-      'file' => 'location.admin.inc',
     ),
     'location_element' => array(
       'render element' => 'element',
     ),
     'location_distance' => array(
-      'template' => 'location_distance',
       'variables' => array(
         'distance' => 0,
         'units' => 'km',
@@ -184,7 +155,7 @@ function location_theme() {
   );
 }
 
-// TODO: Port to D8.
+// TODO: Determine if anything needs to happen with this.
 /**
  * Implements hook_ctools_plugin_directory().
  */
@@ -234,7 +205,7 @@ function template_preprocess_location_settings(&$variables) {
     );
   }
 
-  uasort($rows, 'element_sort');
+  uasort($rows, array('Drupal\Component\Utility\SortArray', 'sortByWeightProperty'));
   foreach ($rows as $k => $v) {
     unset($rows[$k]['#weight']);
   }
@@ -513,7 +484,7 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
                 ),
               );
               // This is much stricter now and there MUST be a country to use the autocomplete otherwise the site falls over!
-              if (!is_null($country)) {
+              if (!is_null($country) && $country != '') {
                 $attrs['#autocomplete_route_name'] = 'location.autocomplete.country';
                 $attrs['#autocomplete_route_parameters'] = array('country' => $country);
               }
@@ -1727,4 +1698,69 @@ function location_google_geocode_accuracy_codes() {
     8 => t('Address level accuracy'),
     9 => t('Premise (building name, property name, shopping center, etc.) level accuracy'),
   );
+}
+
+/**
+ * Theme callback.
+ */
+function template_preprocess_location_map_link_options(&$variables) {
+  $countries = $variables['form'];
+
+  $header = array(
+    array('align' => 'center', 'data' => t('Country')),
+    array('align' => 'center', 'data' => t('Options'))
+  );
+  $rows = array();
+  foreach (element_children($countries) as $country_iso) {
+    $row = array();
+    $row[] = array(
+      'data' => render($countries[$country_iso]['label_' . $country_iso]),
+    );
+    $row[] = array(
+      'data' => render($countries[$country_iso]['location_map_link_' . $country_iso]),
+    );
+    $rows[] = $row;
+  }
+  $table = array(
+    '#type' => 'table',
+    '#header' => $header,
+    '#rows' => $rows,
+  );
+
+  $variables['table'] = render($table);
+}
+
+/**
+ * Theme callback.
+ */
+function template_preprocess_location_geocoding_options(&$variables) {
+  $countries = $variables['form'];
+
+  $header = array(
+    array('align' => 'center', 'data' => t('Country')),
+    array('align' => 'center', 'data' => t('Options')),
+    array('align' => 'center', 'data' => t('Configure'))
+  );
+  $rows = array();
+  foreach (element_children($countries) as $country_iso) {
+    $row = array();
+    $row[] = array(
+      'data' => render($countries[$country_iso]['label_' . $country_iso])
+    );
+    $row[] = array(
+      'data' => render($countries[$country_iso]['location_geocode_' . $country_iso])
+    );
+    $row[] = array(
+      'data' => render($countries[$country_iso]['location_geocode_config_link_' . $country_iso])
+    );
+    $rows[] = $row;
+  }
+  
+  $table = array(
+    '#type' => 'table',
+    '#header' => $header,
+    '#rows' => $rows,
+  );
+  
+  $variables['table'] = render($table);
 }

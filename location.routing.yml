@@ -1,3 +1,4 @@
+# Autocomplete.
 location.autocomplete:
   path: '/location/autocomplete'
   defaults:
@@ -19,16 +20,7 @@ location.autocomplete.country.string:
   requirements:
     _permission: 'access content'
 
-location.admin.config.content.location_form:
-  path: '/admin/config/content/location'
-  defaults:
-    _form: '\Drupal\location\Form\AdminConfigContentLocationForm'
-    _title: 'Location'
-  options:
-    _admin_route: TRUE
-  requirements:
-    _permission: 'administer site configuration'
-
+# Admin.
 location.admin.config.content.location.main_form:
   path: '/admin/config/content/location/main'
   defaults:

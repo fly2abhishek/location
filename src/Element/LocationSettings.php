@@ -23,10 +23,12 @@ class LocationSettings extends FormElement {
     $class = get_class($this);
     return array(
       '#input' => TRUE,
-      '#return_value' => 1,
       '#process' => array(
         array($class, 'processLocationSettings'),
       ),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#tree' => TRUE,
     );
   }
 

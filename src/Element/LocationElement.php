@@ -23,7 +23,6 @@ class LocationElement extends FormElement {
     $class = get_class($this);
     return array(
       '#input' => TRUE,
-      '#return_value' => 1,
       '#process' => array(
         array($class, 'processLocationElement'),
       ),
