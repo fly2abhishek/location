@@ -10,6 +10,7 @@ namespace Drupal\location\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\Component\Utility\Unicode;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Returns responses for location module routes.
@@ -28,7 +29,8 @@ class LocationController extends ControllerBase {
    * @return array
    *   Javascript array. List of states
    */
-  public function autocompletePage($country = NULL, $string = NULL) {
+  public function autocompletePage(Request $request, $country = NULL) {
+    $string = $request->query->get('q');
     // If no country or string is supplied, return a blank json response.
     if (!isset($country) && !isset($string)) {
       return new JsonResponse();

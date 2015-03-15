@@ -13,13 +13,6 @@ location.autocomplete.country:
   requirements:
     _permission: 'access content'
 
-location.autocomplete.country.string:
-  path: '/location/autocomplete/{country}/{string}'
-  defaults:
-    _controller: '\Drupal\location\Controller\LocationController::autocompletePage'
-  requirements:
-    _permission: 'access content'
-
 # Admin.
 location.admin.config.content.location.main_form:
   path: '/admin/config/content/location/main'
