@@ -5,6 +5,8 @@
  * Associate locations with nodes.
  */
 
+use \Drupal\node\Entity\Node;
+
 /**
  * Implements hook_form_BASE_FORM_ID_alter().
  *
@@ -44,31 +46,28 @@ function location_node_form_node_form_alter(&$form, \Drupal\Core\Form\FormStateI
   array_unshift($form['actions']['publish']['#submit'], '_location_node_form_save_submit');
 }
 
-// TODO: Port to D8.
 /**
- * Implements hook_node_revision_delete().
+ * Implements hook_ENTITY_TYPE_revision_delete().
  */
 function location_node_node_revision_delete($node) {
-  if (location_node_node_locations_enabled($node->type)) {
+  if (location_node_node_locations_enabled($node->getType())) {
     $locations = array();
-    location_save_locations($locations, array('vid' => $node->vid));
+    location_save_locations($locations, array('vid' => $node->vid->value));
   }
 }
 
-// TODO: Port to D8.
 /**
- * Implements hook_node_delete().
+ * Implements hook_ENTITY_TYPE_delete().
  */
 function location_node_node_delete($node) {
-  if (location_node_node_locations_enabled($node->type)) {
+  if (location_node_node_locations_enabled($node->getType())) {
     $locations = array();
-    location_save_locations($locations, array('vid' => $node->vid));
+    location_save_locations($locations, array('vid' => $node->vid->value));
   }
 }
 
-// TODO: Port to D8.
 /**
- * Implements hook_node_load().
+ * Implements hook_ENTITY_TYPE_load().
  *
  * @todo
  *   Make this load all locations at once instead of running separate queries
@@ -83,21 +82,19 @@ function location_node_node_load($nodes) {
   }
 }
 
-// TODO: Port to D8.
 /**
- * Implements hook_node_insert().
+ * Implements hook_ENTITY_TYPE_insert().
  */
 function location_node_node_insert($node) {
-  if (location_node_node_locations_enabled($node->type)) {
+  if (location_node_node_locations_enabled($node->getType())) {
     if (!empty($node->locations)) {
-      location_save_locations($node->locations, array('nid' => $node->nid, 'vid' => $node->vid));
+      location_save_locations($node->locations, array('nid' => $node->nid->value, 'vid' => $node->vid->value));
     }
   }
 }
 
-// TODO: Port to D8.
 /**
- * Implements hook_node_update().
+ * Implements hook_ENTITY_TYPE_update().
  */
 function location_node_node_update($node) {
   if (location_node_node_locations_enabled($node->getType())) {
@@ -117,7 +114,7 @@ function location_node_node_view(array &$build, \Drupal\Core\Entity\EntityInterf
 
   $settings = $location_node_config->get('location_settings_node_' . $entity->getType(), array());
 
-  // TODO: Check this part of the if statement is working as expected.  
+  // TODO: Verify this part of the if statement is working as expected.  
   if ($view_mode == 'rss') {
     $mode = isset($settings['rss']['mode']) ? $settings['rss']['mode'] : 'simple';
     if ($mode == 'none') {
@@ -151,7 +148,7 @@ function location_node_node_view(array &$build, \Drupal\Core\Entity\EntityInterf
   }
 }
 
-// TODO: Port to D8.
+// TODO: Verify this is working as expected.
 /**
  * Implements hook_locationapi().
  */
@@ -160,9 +157,9 @@ function location_node_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NUL
     case 'instance_links':
       foreach ($obj as $k => $v) {
         if ($v['nid'] != 0) {
-          $node = node_load($v['nid']);
+          $node = Node::load($v['nid']);
           $obj[$k]['href'] = 'node/' . $v['nid'];
-          $obj[$k]['title'] = $node->title;
+          $obj[$k]['title'] = $node->title->value;
           $obj[$k]['type'] = t('Node location');
         }
       }
@@ -235,6 +232,7 @@ function location_node_form_node_type_form_alter(&$form, \Drupal\Core\Form\FormS
     $form['location_settings']['display']['weight']['#value'] = $form['location_settings']['display']['weight']['#default_value'];
   }
 
+  // TODO: Determine if anything needs to happen with this.
   // @@@ THIS IS NOT GOOD. --Bdragon
   // clear the views cache in case anything was changed
   if (function_exists('views_invalidate_cache')) {
@@ -298,6 +296,7 @@ function _location_node_form_save_submit($form, &$form_state) {
   }
 }
 
+// TODO: Determine if anything needs to happen with this.
 /**
  * Alter the content_field_overview_form form.
  */
@@ -305,6 +304,7 @@ function location_node_form_content_field_overview_form_alter(&$form, &$form_sta
   $form['#submit'][] = 'location_node_content_extra_save';
 }
 
+// TODO: Determine if anything needs to happen with this.
 /**
  * Implements hook_content_extra_fields().
  *
@@ -324,6 +324,7 @@ function location_node_content_extra_fields($type_name) {
   }
 }
 
+// TODO: Determine if anything needs to happen with this. See location_node_form_content_field_overview_form_alter.
 /**
  * Saving the fields management's weight for location node data in forms and node view.
  */

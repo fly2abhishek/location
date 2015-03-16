@@ -1,0 +1,10 @@
+{% if links is not empty %}
+  <div class="location map-link">
+    {{ link_text }}
+    {{ links }}
+    {% for link in links %}
+      <a href="{{ link.link }}"{{ link.external }}>{{ link.name }}</a>
+    {% endfor %}
+  </div>
+{% endif %}
+

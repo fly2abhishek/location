@@ -157,6 +157,12 @@ function location_theme() {
         'units' => 'km',
       ),
     ),
+    'location_map_link' => array(
+      'variables' => array(
+        'location' => NULL,
+        'link_text' => NULL,
+      ),
+    ),
   );
 }
 
@@ -449,7 +455,7 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
           else {
             $country = \Drupal::config('system.site')->get('site_default_country');
           }
-          
+
           // Options are defined once during hook_element implementation.
           // @see \Drupal\location\Element\LocationElement::processLocationElement().
           // $options = array_merge(array('' => t('Select'), 'xx' => t('NOT LISTED')), location_get_provinces($country));
@@ -471,7 +477,7 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
                 '#description' => NULL,
                 '#required' => ($settings['collect'] == 2),
                 '#attributes' => array('class' => array('location_dropdown_province')),
-                '#prefix' => '<div id="location-dropdown-province-wrapper' . $wrapper_suffix . '">',
+                '#prefix' => '<div id="location-province-wrapper' . $wrapper_suffix . '">',
                 '#suffix' => '</div>',
               );
             // @codingStandardsIgnoreEnd
@@ -487,12 +493,7 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
                 '#description' => NULL,
                 '#attributes' => array('class' => array('location_auto_province')),
                 '#required' => ($settings['collect'] == 2),
-                '#attached' => array(		
-                  'library' => array(
-                    'location.autocomplete',
-                  ),
-                ),
-                '#prefix' => '<div id="location-dropdown-province-wrapper' . $wrapper_suffix . '">',
+                '#prefix' => '<div id="location-province-wrapper' . $wrapper_suffix . '">',
                 '#suffix' => '</div>',
               );
               // This is much stricter now and there MUST be a country to use the autocomplete otherwise the site falls over!
@@ -538,7 +539,7 @@ function location_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = NULL) {
               '#attributes' => array('class' => array('location_auto_country')),
               '#ajax' => array(
                 'callback' => '_location_country_ajax_callback',
-                'wrapper' => 'location-dropdown-province-wrapper' . $wrapper_suffix,
+                'wrapper' => 'location-province-wrapper' . $wrapper_suffix,
                 'effect' => 'fade',
               ),
             );
@@ -765,7 +766,7 @@ function location_load_location($lid) {
 }
 
 
-
+// TODO: Port to D8. See location_locationapi().
 /**
  * AJAX callback for the Country select form, for cases where the province list.
  *
@@ -780,53 +781,8 @@ function _location_country_ajax_callback($form, $form_state) {
   // way to check whether or not the province is being collected when putting
   // together the country form element in location_locationapi() when that
   // function is called with $op == 'field_expand'
-  ////dsm(\Drupal\Core\Url::fromRoute('<current>')->toString());
   $arg3 = 0; // TODO. Get the actual value.
   return $form['locations'][$arg3]['province'];
-  /*if (isset($form['locations'][$arg3]['province'])) {
-    dsm($form['locations'][$arg3]['province']['#type']);
-    switch($form['locations'][$arg3]['province']['#type']) {
-      case 'select':
-        #return $form['locations'][$arg3]['province'];
-        break;
-        
-      case 'textfield':
-        #$test = location_invoke_locationapi($location, 'field_expand', 'province', array('widget' => 'autocomplete'), array('country' => 'af'));
-        #dsm($test);
-        #return array();
-        #return $test;
-        break;
-    }
-    return 'test';
-    /*if ($form['locations'][$arg3]['province']['#type'] == 'select') {
-      
-    }
-    elseif ($form['locations'][$arg3]['province']['#type'] == 'textfield') {
-      
-      dsm($test);
-      return $test;
-    }
-    //
-  }*/
-  /*if (arg(2) == 'locations' && isset($form['locations'][arg(3)]['province'])) {
-    return $form['locations'][arg(3)]['province'];
-  }
-  elseif (isset($form[arg(2)][arg(3)][arg(4)])) {
-    if (isset($form[arg(2)][arg(3)][arg(4)]['#entity_type']) && $form[arg(2)][arg(3)][arg(
-        4
-      )]['#entity_type'] == 'field_collection_item'
-    ) {
-      $selected_country_value = $form[arg(2)][arg(3)][arg(4)][arg(5)][arg(6)][arg(7)]['country']['#value'];
-      $form[arg(2)][arg(3)][arg(4)][arg(5)][arg(6)][arg(7)]['province']['#options'] = array(
-          '' => t('Select'),
-          'xx' => t('NOT LISTED')
-        ) + location_get_provinces($selected_country_value);
-
-      return $form[arg(2)][arg(3)][arg(4)][arg(5)][arg(6)][arg(7)]['province'];
-    }
-
-    return $form[arg(2)][arg(3)][arg(4)]['province'];
-  }*/
 }
 
 /**
@@ -1449,7 +1405,11 @@ function template_preprocess_location(&$variables) {
   if (!empty($location['map_link'])) {
     // Do not use $location for generating the map link, since it will
     // not contain the country if that field is hidden.
-    $variables['map_link'] = location_map_link($variables['location']);
+    $map_link = array(
+      '#theme' => 'location_map_link',
+      '#location' => $variables['location'],
+    );
+    $variables['map_link'] = render($map_link);;
   }
 
   // Theme latitude and longitude as d/m/s.
@@ -1461,6 +1421,7 @@ function template_preprocess_location(&$variables) {
       '#theme' => 'location_latitude_dms',
       '#latitude' => $location['latitude'],
     );
+    //location_map_link($variables['location'])
     $variables['latitude_dms'] = render($render);
   }
 
@@ -1812,4 +1773,78 @@ function template_preprocess_location_geocoding_options(&$variables) {
   );
   
   $variables['table'] = render($table);
+}
+
+/**
+ * Get a deep-link to a mapping service such as Yahoo! Maps or MapPoint given an location.
+ *
+ * The call is delegated based on the 'country' value in the $location parameter.
+ *
+ * @param array $location
+ *   An associative array where
+ *      'street'       => A string representing the street location
+ *      'additional'   => A string for any additional portion of the street location
+ *      'city'         => A string for the city name
+ *      'province'     => The standard postal abbreviation for the province
+ *      'country'      => The two-letter ISO code for the country of the location (REQUIRED)
+ *      'postal_code'  => The international postal code for the location
+ *
+ * @param string $link_text
+ *   Text for a link.
+ *
+ * @return string
+ *   A link to a map provided by a third-party.  The idea is to encode the appropriate
+ *   parameters as HTTP GET variables to the URL.
+ *
+ * @ingroup Location
+ */
+function template_preprocess_location_map_link(&$variables) {
+  // Get the relevant variables.
+  $location = $variables['location'];
+  $link_text = (is_null($variables['link_text'])) ? 'See map: ' : $variables['link_text'];
+
+  // Get the config.
+  $config = \Drupal::config('location.variables');
+
+  if (!isset($location['country']) || $location['country'] == 'xx') {
+    return '';
+  }
+
+  location_load_country($location['country']);
+
+  $default_func = 'location_map_link_' . $location['country'] . '_default_providers';
+  $providers_func = 'location_map_link_' . $location['country'] . '_providers';
+  // Merge the global providers with country specific ones so that countries
+  // can add to or override the defaults.
+  $providers = function_exists($providers_func) ? array_merge(
+    location_map_link_providers(),
+    $providers_func()
+  ) : location_map_link_providers();
+  // Default providers will be taken from the country specific default providers
+  // function if it exists, otherwise it will use the global function.
+  $selected_providers = $config->get('location_map_link_' . $location['country']);
+  if (is_null($selected_providers)) {
+    $selected_providers = function_exists($default_func) ? $default_func() : location_map_link_default_providers();
+  }
+
+  $links = array();
+  foreach ($selected_providers as $mapper) {
+    $link_func = 'location_map_link_' . $location['country'] . '_' . $mapper;
+    // If there is no country function try for a global one.
+    $link_func = function_exists($link_func) ? $link_func : 'location_map_link_' . $mapper;
+    if (function_exists($link_func)) {
+      if ($link = $link_func($location)) {
+        $links[] = array(
+          'link' => $link,
+          'external' => ($config->get('location_maplink_external') ? ' ' . $config->get(
+              'location_maplink_external_method'
+            ) : ''),
+          'name' => $providers[$mapper]['name'],
+        );
+      }
+    }
+  }
+  
+  $variables['link_text'] = $link_text;
+  $variables['links'] = $links;
 }
